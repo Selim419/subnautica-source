@@ -32,7 +32,7 @@ function App() {
       <nav className={`main-nav ${menuOpen ? 'open' : ''}`} aria-label="Ana menü">
         <button className={route === 'home' ? 'nav-active' : ''} onClick={goHome}><TextRoll>KEŞİF</TextRoll></button>
         <button className={route === 'wiki' ? 'nav-active' : ''} onClick={goWiki}><TextRoll>WIKI / VERİ BANKASI</TextRoll></button>
-        <a href={`${import.meta.env.BASE_URL}sade/`} onClick={() => setMenuOpen(false)}><TextRoll>SADE SÜRÜM</TextRoll></a>
+
       </nav>
       <div className="header-right"><span className="signal-dot" /><span>4546B SİNYALİ</span><button className="menu-toggle" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? '×' : '☰'}</button></div>
     </header>
@@ -45,4 +45,5 @@ function App() {
 }
 
 createRoot(document.getElementById('root')).render(<App />)
+
 
