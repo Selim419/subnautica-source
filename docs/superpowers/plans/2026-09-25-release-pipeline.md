@@ -13,7 +13,7 @@
 ## Global Constraints
 
 - Source repo name is `Selim419/subnautica-source`. It **must be public** — `actions/checkout` in the Pages repos clones it with a read-only token.
-- `git push` is performed by the user, never by the agent. No credentials exist on this machine (`credential.helper` empty, no `gh` auth, no token).
+- The source remote is **SSH**: `git@github.com:Selim419/subnautica-source.git`. The user's ed25519 key is registered on GitHub, so **the agent performs every push** in this plan. The original draft assigned pushes to the user; that no longer applies.
 - The two live URLs must not both break from one commit. Guarantee: neither deploys unless source `CI` succeeded. Deploy ordering between the two sites is **not** guaranteed and is not relied upon.
 - `PAGES_BASE` values are exactly `/` and `/subnautica-derinlik-gunlugu/` — the trailing slash is required.
 - Build output directory is `app/dist/`, already gitignored.
