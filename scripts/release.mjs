@@ -8,6 +8,7 @@
 //
 // Usage:
 //   node scripts/release.mjs            push and publish
+//   node scripts/release.mjs --force    publish even if the pin is unchanged
 //   node scripts/release.mjs --dry-run  print what would happen, change nothing
 
 import { spawnSync } from 'node:child_process'
@@ -24,6 +25,11 @@ const TARGETS = [
 ]
 
 const dryRun = process.argv.includes('--dry-run')
+// A pin that already names this commit is skipped, so a no-op release cannot
+// restart the deploys. --force exists for the case where the pin is right but
+// the deploys still need to run - for example after Actions was switched on
+// after the push, since enabling Actions does not replay earlier workflow runs.
+const force = process.argv.includes('--force')
 
 function git(cwd, ...args) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' })
@@ -67,7 +73,7 @@ for (const target of TARGETS) {
     current = null
   }
 
-  if (current === sha) {
+  if (current === sha && !force) {
     check(`${name}: already pinned to ${short}`, true)
     continue
   }
