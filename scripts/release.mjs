@@ -66,6 +66,18 @@ if (dryRun) {
 for (const target of TARGETS) {
   console.log('')
   const { name, dir } = target
+
+  // A dirty Pages repo is a stop, not a warning. A workflow edit left uncommitted
+  // here publishes silently: the pin moves, the deploy runs, and the workflow on
+  // the remote is still the old one. That happened once and cost a long debugging
+  // detour, so it fails loudly now.
+  const dirty = git(dir, 'status', '--porcelain')
+  if (dirty) {
+    console.error(`${name} repo has uncommitted changes. Commit or discard them first:`)
+    console.error(dirty)
+    process.exit(1)
+  }
+
   let current = null
   try {
     current = readFileSync(resolve(dir, PIN), 'utf8').trim()
