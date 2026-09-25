@@ -39,13 +39,40 @@ test('rejects a relative asset reference', () => {
   // A Vite build with base './' is the most common wrong "fix" for the original
   // bug. Normalizing it against a root URL would erase the difference and let
   // it pass the '/' check, so it must be rejected before normalization.
-  for (const ref of ['./', '../']) {
+  // '//host/' is the same bypass by another route: it satisfies `startsWith('/')`
+  // and normalization discards the host, so it must be rejected too.
+  for (const ref of ['./', '../', '//cdn.example.com/']) {
     assert.throws(
       () => verifyBase(asset(ref), '/'),
       /root-absolute/,
       `expected ${ref} to be rejected as not root-absolute`
     )
   }
+})
+
+test('rejects a protocol-relative reference that appears after the first', () => {
+  // The first reference is well-formed; the bypass is in the second one. If only
+  // the first reference were inspected, this would pass.
+  const html =
+    `<script type="module" crossorigin src="/assets/index-abc.js"></script>` +
+    `<link rel="stylesheet" crossorigin href="//cdn.example.com/assets/index-abc.css">`
+
+  assert.throws(() => verifyBase(html, '/'), /root-absolute/)
+})
+
+test('rejects a document whose references disagree on the base', () => {
+  // Root-correct script, subpath-correct stylesheet. Inspecting only the first
+  // reference reported this as a pass for '/', which is exactly the half-blind
+  // case this assertion must not have.
+  const html =
+    `<script type="module" crossorigin src="/assets/index-abc.js"></script>` +
+    `<link rel="stylesheet" crossorigin href="/subnautica-derinlik-gunlugu/assets/index-abc.css">`
+
+  assert.throws(() => verifyBase(html, '/'), /base mismatch/)
+  assert.throws(
+    () => verifyBase(html, '/subnautica-derinlik-gunlugu/'),
+    /base mismatch/
+  )
 })
 
 test('is stable across repeated calls on the same html', () => {

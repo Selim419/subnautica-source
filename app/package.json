@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "build": "vite build",
     "build:root": "node scripts/build-with-base.mjs /",
     "build:subpath": "node scripts/build-with-base.mjs /subnautica-derinlik-gunlugu/",
     "test:base": "node --test scripts/verify-base.test.mjs"

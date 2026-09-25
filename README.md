@@ -22,7 +22,7 @@ npm run dev
 
 ```powershell
 cd app
-npm run test:base              # taban yolu kontrolü, 8 test
+npm run test:base              # taban yolu kontrolü, 10 test
 npm run build:root             # base = /
 npm run build:subpath          # base = /subnautica-derinlik-gunlugu/
 ```
@@ -42,10 +42,16 @@ node scripts/release.mjs
 
 Tek komut her iki siteyi de günceller:
 
-1. Kaynak repoyu `main`'e push'lar.
-2. Her iki Pages reposundaki `.deploy-source` dosyasına yeni commit SHA'sını yazar ve
+1. Üç repoyu da kontrol eder: temiz, `main` üzerinde ve `origin` beklenen repo.
+   Bu kontrol ilk mutasyondan **önce** yapılır; aksi hâlde yarım kalmış bir
+   sürüm bırakırdı.
+2. Kaynak repoyu `main`'e push'lar.
+3. O commit'e ait `CI` koşusunu bekler. **Sonucu `success` değilse pin yazmaz** ve
+   durur. Koşu hiç görünmezse ya da bekleme zamanı dolarsa da pin yazılmaz —
+   bilinmeyen CI durumu yeşil sayılmaz.
+4. Her iki Pages reposundaki `.deploy-source` dosyasına yeni commit SHA'sını yazar ve
    push'lar.
-3. Her Pages reposundaki `Deploy … site` iş akışı kendi `main` push'una tepki verir,
+5. Her Pages reposundaki `Deploy … site` iş akışı kendi `main` push'una tepki verir,
    `.deploy-source`'ta adı geçen commit'i checkout eder, **kendi** taban yoluyla
    derler, taban yolunu doğrular ve `actions/deploy-pages` ile yayınlar.
 
@@ -53,6 +59,11 @@ Tek komut her iki siteyi de günceller:
 node scripts/release.mjs --dry-run   # ne yapılacağını gösterir, hiçbir şey değiştirmez
 node scripts/release.mjs --force     # pin zaten doğruysa da yeniden yayınlar
 ```
+
+Pages klonlarının yolu varsayılan olarak bu makinenin düzenidir; başka bir yolda
+olacaksa `--root-dir` / `--subpath-dir` ya da `PAGES_ROOT_DIR` /
+`PAGES_SUBPATH_DIR` ile verilir. Hedefin `origin`'i beklenen repo değilse ya da
+`main` üzerinde değilse komut **gürültüyle değil, hatayla** durur.
 
 `release.mjs` üç repodan biri kirliyse **durur**. Bu kontrol bilinçlidir: commit
 edilmemiş bir iş akışı dosyası, `.deploy-source` doğru ilerlerken hiçbir şey
@@ -84,10 +95,16 @@ gerekecekti. Kalan tek kimlik bilgisi SSH anahtarıdır ve o sadece yerel klon i
 ## Yapı
 
 ```
+app/src/           şu an yalnızca HomeView, WikiView, OceanScene ve stil
+app/scripts/       derleme ve taban yolu doğrulama
+scripts/release.mjs  iki siteyi tek komutla yayınlar
+docs/superpowers/ tasarım ve plan belgeleri
+```
+
+Dalış omurgasıyla gelmesi beklenen ama **henüz var olmayan** dizinler:
+
+```
 app/src/dive/     scroll'a bağlı dalış, derinlik rejimleri   (Plan 2)
 app/src/scene/    prosedürel okyanus sahnesi (Three.js)     (Plan 2)
 app/src/design/   renk, tipografi ve ölçü token'ları        (Plan 2)
-app/scripts/      derleme ve taban yolu doğrulama
-scripts/release.mjs  iki siteyi tek komutla yayınlar
-docs/superpowers/ tasarım ve plan belgeleri
 ```

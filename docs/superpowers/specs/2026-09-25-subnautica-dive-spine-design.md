@@ -249,11 +249,33 @@ base: process.env.PAGES_BASE ?? '/'
 iki taban yolu için ayrı ayrı `npm run build` → her biri için `node scripts/verify-base.mjs`
 ile taban yolu doğrula → `dist/index.html` var mı diye kontrol et.
 
-**Pages repoları — `deploy.yml`:** `workflow_run` tetikleyicisiyle kaynak repodaki `CI`
-iş akışı `main` dalında başarıyla bitince çalışır. Kaynak repoyu `head_sha` ile checkout
-eder, **kendi** taban yoluyla build eder ve `actions/deploy-pages` ile yayınlar.
-Artifact aktarımı ve üçüncü taraf action yoktur; kaynak repoyu okumak için
-`actions/checkout` yeterlidir.
+**Pages repoları — `deploy.yml`:** Her Pages reposu **kendi `main` push'una** tepki
+verir. `.deploy-source` dosyasını okur, içindeki SHA'yı doğrular (dosya boşsa veya
+içindeki değer tam 40 karakterlik bir hex SHA değilse iş akışı kırmızıya düşer),
+kaynak repoyu o SHA ile checkout eder, `npm run test:base` çalıştırır, **kendi**
+taban yoluyla build eder ve `actions/deploy-pages` ile yayınlar. Artifact aktarımı
+ve üçüncü taraf action yoktur; kaynak repoyu okumak için `actions/checkout`
+yeterlidir.
+
+> **Düzeltilmiş tasarım (Faz 1'de değişti).** Bu bölüm başlangıçta `workflow_run`
+> tetikleyicisi ve `head_sha` ile checkout öngörüyordu ve deploy'un
+> `conclusion == 'success'` olmasını şart koşuyordu. `workflow_run` çözülmedi:
+> tetikleyici `workflow_run`'ı tetikleyen iş akışının adını ve ayrıca bir
+> workflow dosyası referansı ister, `conclusion`'ı filtrelemek için
+> `workflows: [CI]` + `types: [completed]` gerekir ve `head_branch` bir branch
+> adı verir, SHA değil. Alternatif olarak `repository_dispatch` + fine-grained
+> PAT denendi ve **terk edildi**: PAT'ın `contents=write` izni çalıştırılamadı
+> ve 90 günde bir yenilenmesi gerekecekti. Pipeline'da secret istemiyoruz.
+>
+> Yayınlanan tasarım: Pages repoları kendi push'larına tepki verir, `.deploy-source`
+> ile adı geçen commit'i build eder. **CI yeşil gate'i artık tetikleyicinin değil
+> `release.mjs`'in sorumluluğundadır** (D9): kaynak push edildikten sonra, hiçbir
+> pin yazılmadan önce, o SHA'daki `CI` koşusunun `success` ile bitmesi beklenir.
+> Bilinmeyen CI durumu (koşu yok, hâlâ kuyrukta, zaman aşımı) yeşil sayılmaz ve
+> pin yazılmaz. Ayrıca savunma olarak her iki `deploy.yml` de yayınlamadan önce
+> `npm run test:base` çalıştırır ve kendi taban yolunu doğrular; iki iş akışı
+> birbiriyle karışırsa (`build:root` ↔ `build:subpath`) bir "Guard against a
+> swapped base" adımı kırmızıya düşer.
 
 İki site arasında deploy **sırası garanti edilmez** — iki ayrı repo, iki ayrı workflow.
 Gerçek garanti şudur: **CI yeşil değilse hiçbiri deploy olmaz** (D9). Aynı commit'ten iki
@@ -271,8 +293,13 @@ Bu işlem arayüzden yapılır, otomasyonla yapılamaz.
 
 ### 7.5 Git
 
-Tüm commit'ler kaynak repoda yapılır. `git push` **kullanıcı tarafından** çalıştırılır
-(F11: kimlik doğrulama bilgileri yok). Actions, push sonrası otomatik tamamlar.
+Tüm commit'ler kaynak repoda yapılır ve `node scripts/release.mjs` tarafından
+`origin/main`'e push edilir (F11: kimlik bilgisi yalnızca yerel SSH klonunda, o
+zaman push'u kullanıcı değil script yapar). Script sırasıyla: üç repoyu da
+temiz/`main`/doğru `origin` için kontrol eder → kaynağı push'lar → o SHA'daki
+`CI` koşusunun `success` ile bitmesini bekler → iki Pages reposundaki
+`.deploy-source` pin'ini yazar ve push'lar. Actions, push sonrası otomatik
+tamamlar.
 
 ---
 
@@ -404,7 +431,7 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 |---|---|---|
 | Plex'e geçince başlıklar taşar / ritim bozulur | Orta | Tipografi ölçeği tarayıcıda yeniden ölçülür; `Impact`'ten daha geniş olduğu için display boyutları gözden geçirilir |
 | Mobilde düşük FPS | Orta | Partikül bütçesi düşük; `IntersectionObserver` durdurma; gerekirse otomatik sadeleşme |
-| Aynı commit iki siteyi birden bozar | Yüksek | CI yeşil gate; deploy yalnızca `conclusion == 'success'` ise çalışır |
+| Aynı commit iki siteyi birden bozar | Yüksek | CI yeşil gate; `release.mjs` o SHA'nın `CI` koşusu `success` olmadan pin yazmaz. Deploy sırası garanti edilmez ve iki siteyi birden güncellemek gerekmez |
 | Yeni repo adı beğenilmez | Düşük | Ad tek satır değişiklik; build çıktısına dokunmaz |
 | 3 `.webp` kartlarda döngüsel kalıyor | Düşük | Faz 1'de dokunulmaz; arka planlar CSS gradyanına geçer |
 | Shader yazmak uzun sürer | Orta | `regimes.js` saf veri olduğu için önce atmosfer çalışır, efektler sonra eklenir |
