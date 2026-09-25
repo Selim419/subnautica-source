@@ -439,11 +439,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -464,22 +465,18 @@ jobs:
         run: npm run test:base
 
       - name: Build root site
-        env:
-          PAGES_BASE: /
-        run: npm run build
+        run: npm run build:root
 
       - name: Verify root base
         run: node scripts/verify-base.mjs /
 
       - name: Build subpath site
-        env:
-          PAGES_BASE: /subnautica-derinlik-gunlugu/
-        run: npm run build
+        run: npm run build:subpath
 
       - name: Verify subpath base
         run: node scripts/verify-base.mjs /subnautica-derinlik-gunlugu/
 
-      - name: Confirm dist is not gitignored away from the build
+      - name: Confirm build emitted to app/dist
         run: test -f dist/index.html
 
   dispatch:
@@ -637,8 +634,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        env:
-          PAGES_BASE: /
+        run: npm run build:root
         run: npm run build
 
       - name: Verify base
@@ -665,10 +661,11 @@ it just serves the wrong site.
 Run:
 ```powershell
 $w = Get-Content C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml -Raw
-if ($w -match 'PAGES_BASE:\s*/subnautica') { throw "root repo has the subpath base - swapped" }
-if ($w -notmatch 'PAGES_BASE:\s*/\r?\n') { throw "root repo must build with PAGES_BASE: /" }
-if ($w -notmatch 'verify-base\.mjs /') { throw "root repo must verify against /" }
+if ($w -match 'build:subpath') { throw "root repo has the subpath build - swapped" }
+if ($w -notmatch 'npm run build:root') { throw "root repo must build with npm run build:root" }
+if ($w -notmatch 'verify-base\.mjs /(\r?\n|$)') { throw "root repo must verify against /" }
 if ($w -notmatch 'repository_dispatch') { throw "must trigger on repository_dispatch" }
+if ($w -notmatch 'client_payload\.sha') { throw "must build the dispatched SHA" }
 "root deploy wiring OK"
 ```
 Expected: `root deploy wiring OK`
@@ -745,8 +742,7 @@ jobs:
         run: npm ci
 
       - name: Build
-        env:
-          PAGES_BASE: /subnautica-derinlik-gunlugu/
+        run: npm run build:subpath
         run: npm run build
 
       - name: Verify base
@@ -767,8 +763,8 @@ Run:
 ```powershell
 $root = Get-Content C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml -Raw
 $sub  = Get-Content C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml -Raw
-if ($root -match 'PAGES_BASE:\s*/subnautica') { throw "root repo has the subpath base - swapped" }
-if ($sub -notmatch 'PAGES_BASE:\s*/subnautica-derinlik-gunlugu/') { throw "subpath repo base wrong" }
+if ($root -match 'build:subpath') { throw "root repo has the subpath build - swapped" }
+if ($sub -notmatch 'npm run build:subpath') { throw "subpath repo must build with npm run build:subpath" }
 if ($sub -notmatch 'verify-base\.mjs /subnautica-derinlik-gunlugu/') { throw "subpath verify target wrong" }
 if ($root -eq $sub) { throw "the two files are identical - the base values were never changed" }
 "subpath deploy wiring OK - no swap"
