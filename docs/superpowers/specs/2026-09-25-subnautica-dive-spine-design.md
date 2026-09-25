@@ -32,6 +32,8 @@ daha çekici hâle getirmek. Kütüphaneler zaten kuruludur; kullanım derinleş
 | F9 | Kaynak dosyalar doğru UTF-8; Türkçe karakterler bozuk değil | `app/index.html:7-8` |
 | F10 | Yalnızca 3 `.webp` görsel var, kartlar arasında döngüsel kullanılıyor | `app/public/` |
 | F11 | `gh` CLI girişsiz, `credential.helper` boş, token yok → **push kullanıcı tarafından yapılacak** | doğrulandı |
+| F12 | `style.css` içinde **71 benzersiz hardcoded hex**, yalnızca 5'i token. `--cyan` bile kullanılmadan `#0c5e66`, `#24939a` gibi değerler yazılmış | taramayla ölçüldü |
+| F13 | Token tabanlı boşluk ölçeği yok; ölçüler doğrudan px olarak yazılmış (`padding:128px`, `145px`, `64px`) | taramayla ölçüldü |
 
 ### 1.3 Kapsam dışı
 
@@ -182,7 +184,7 @@ olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile birebir tutarlıdır.
 
 | Rol | Aile | Kesim |
 |---|---|---|
-| Başlık | IBM Plex Sans Condensed | 500 / 600 / 600-italic |
+| Başlık | IBM Plex Sans Condensed | 500 / 600 |
 | Teknik etiket, cetvel | IBM Plex Mono | 400 / 500 |
 | Gövde | IBM Plex Sans | 400 / 600 |
 
@@ -190,6 +192,11 @@ olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile birebir tutarlıdır.
 - `@font-face` + `font-display: swap`; yalnızca iki kritik kesim `preload` edilir.
 - Üçüncü taraf isteği yok. Tahmini ~90 KB.
 - **`Impact` ve `Arial` tamamen kaldırılır.**
+- **`600-italic` kesimi yüklenmez.** Başlıklarda italik yasaktır; vurgu ağırlık ve
+  accent rengiyle taşınır. Hero'ın üçüncü satırı (`YERİN ALTINDA.`) romandır ve
+  `--amber` ile öne çıkar — onaylanan mockup'taki görsel fark bu sayede korunur, ancak
+  italik kesimi pakette bulunmaz, yani dosya boyutu da düşer. İtalik yalnızca gövde
+  metninde, koşan paragraf içinde vurgu için kullanılabilir.
 
 **Kaynak ve lisans:** IBM Plex, SIL Open Font License 1.1 ile dağıtılır. Dosyalar
 IBM'in resmi dağıtımından alınır ve `app/public/fonts/OFL.txt` lisans metniyle birlikte
@@ -220,6 +227,35 @@ taşınmaz); shader uniform'ları çıplak paletten beslenir, rejim geçişinde 
 
 `style.css` (21 776 karakter) → `tokens.css` + `type.css` + `layout.css` + bileşen
 blokları. Yeni bileşen eklerken hangi değişkenin kullanılacağına karar vermek gerekmez.
+
+### 6.4 Tasarım kapıları
+
+Aşağıdaki altı kural Faz 1'in **kabul kriteridir**; "iyi görünüyor" yeterli bir gerekçe
+değildir. Altıncı madde hariç bunlar bir denetim listesidir, tartışmaya açık değildir.
+
+1. **Kilitli token'lar.** Her renk ve her `font-family` bildirimi adlandırılmış bir
+   token'a başvurur (`var(--color-amber)`, `font-family: var(--font-display)`). Satır
+   içi hex, `oklch()` veya `rgb()` ve token'ı atlayan bir `font-family: "Font Adı"`
+   bildirimi kabul edilmez. Gerekli ama token'da olmayan bir değer önce token
+   bloğuna yeni bir isimle eklenir, sonra referanslanır.
+   *Bu, F12'nin (71 hardcoded hex) karşılığıdır — sayı 20'ye inmeli.*
+2. **Dürüst içerik.** Kullanıcı vermediği hiçbir sayı uydurulamaz. "3 biyom keşfedildi",
+   "50.000+ hayran", "%47 artış" gibi ifadeler yapılmaz. Dalış deneyimi bir sayaç
+   göstermeye zorlanırsa, gerçek değer `localStorage`'da tutulmuyorsa gösterilmez.
+3. **Sahte chrome yasak.** Elle çizilmiş tarayıcı çubuğu, telefon çerçevesi, sahte kod
+   penceresi veya sahte IDE chrome'u üretilmez. Kullanıcının ortamı zaten gerçek
+   chrome'u sağlıyor. Zorunlu değil.
+4. **Başlıklarda italik yasak.** Vurgu ağırlık, accent rengi veya çizilmiş alt çizgiyle
+   taşınır. İtalik yalnızca koşan gövde paragrafı içinde kullanılabilir. (§6.1)
+5. **Mobil doğrulama.** §8.2'deki dört genişliğin hepsi doğrulanır.
+6. **Yayın öncesi öz-eleştiri.** Her çıktı altı eksende 1–5 puanlanır: felsefe,
+   hiyerarşi, uygulama, özgüllük, ölçülülük, çeşitlilik. **3'ün altı herhangi bir
+   eksende revizyon turunu tetikler.** Altı skor çıktının üstüne damgalanır ve
+   hangi eksende neden revize edildiği not edilir.
+
+**Bu kapıların kapsamadığı ve kapsam dışı bıraktıklarımız:** makrostructure veya tema
+seçimi. Onaylanan yön (C — hibrt) üç mockup turundan sonra kesinleşti; bu faz
+o kararı yeniden açmaz, yalnızca uygular.
 
 ---
 
@@ -329,6 +365,27 @@ F7'deki mevcut temel **korunur**, yeniden yazılmaz.
 - Derinlik cetveli dekoratif → `aria-hidden`. Kayıtlar normal `<button>`.
 - Kontrast: gövde metni koyu zeminde ≥ 4.5:1, `--amber` ≥ 7:1 (doğrulanacak).
 - Modal focus trap + Escape korunur.
+
+**Dört zorunlu genişlik.** Mevcut kırılma noktaları (1160 / 850 / 600) 320 px'i
+kapsamıyor ve 375 ile 414 arasındaki davranışı ayırt etmiyor. Çıktı şu dört
+genişlikte hatasız olmalı:
+
+| Genişlik | Neden |
+|---|---|
+| 320 px | En dar telefon. Yatay kaydırma olmamalı. |
+| 375 px | iPhone SE/13 mini. En yaygın dar hedef. |
+| 414 px | Android ortası. |
+| 768 px | Tablet dikey. Derinlik cetveli burada gizlenmeli. |
+
+Kabul ölçütleri:
+
+- Yatay kaydırma yok; `html` ve `body` üzerinde `overflow-x: clip` (`hidden` değil —
+  `hidden` `position: sticky`'yi bozar, dalış bölümü buna dayanıyor).
+- Tıklanabilir hiçbir metin iki satıra taşmaz: butonlar, nav bağlantıları, alt bilgi
+  bağlantıları, breadcrumb'lar, CTA'lar.
+- Görsel taşıyan grid track'leri `minmax(0, 1fr)`, çıplak `1fr` değil.
+- Uzun kelimelerde başlıklar `overflow-wrap: anywhere; min-width: 0` ile sarar.
+- Bölüm başlıkları mobilde tek sütuna iner.
 
 ### 8.3 Hata durumları
 
