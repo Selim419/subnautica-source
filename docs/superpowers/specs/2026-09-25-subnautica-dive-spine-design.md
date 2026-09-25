@@ -245,14 +245,23 @@ base: process.env.PAGES_BASE ?? '/'
 
 ### 7.3 İş akışları
 
-**Kaynak repo — `ci.yml`:** `npm ci` → `npm run test` → `npm run build` →
-`grep` ile `base` yolunu doğrula → build artifact'i sakla.
+**Kaynak repo — `ci.yml`** (iş akışı adı tam olarak `CI`): `npm ci` → `npm run test:base` →
+iki taban yolu için ayrı ayrı `npm run build` → her biri için `node scripts/verify-base.mjs`
+ile taban yolu doğrula → `dist/index.html` var mı diye kontrol et.
 
-**Pages repoları — `deploy.yml`:** `workflow_run` tetikleyicisiyle kaynak repodaki
-`ci.yml` başarılı olduğunda çalışır → artifact indirir → `actions/deploy-pages`.
+**Pages repoları — `deploy.yml`:** `workflow_run` tetikleyicisiyle kaynak repodaki `CI`
+iş akışı `main` dalında başarıyla bitince çalışır. Kaynak repoyu `head_sha` ile checkout
+eder, **kendi** taban yoluyla build eder ve `actions/deploy-pages` ile yayınlar.
+Artifact aktarımı ve üçüncü taraf action yoktur; kaynak repoyu okumak için
+`actions/checkout` yeterlidir.
 
-Kök site **önce** deploy edilir, alt yol sonra. Aynı commit'ten iki site birden
-bozulmaz: CI yeşil değilse hiçbiri deploy olmaz (D9).
+İki site arasında deploy **sırası garanti edilmez** — iki ayrı repo, iki ayrı workflow.
+Gerçek garanti şudur: **CI yeşil değilse hiçbiri deploy olmaz** (D9). Aynı commit'ten iki
+site birden bozulmaz.
+
+> Not: `npm run test:base` yalnızca taban yolu doğrulamasını kapsar ve `node --test` ile
+> çalışır, ek bağımlılık getirmez. Vitest ve modül testleri dalış omurgasıyla birlikte
+> gelir; o noktada `ci.yml`'e tam `npm test` adımı eklenir.
 
 ### 7.4 Manuel adım
 
@@ -395,7 +404,7 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 |---|---|---|
 | Plex'e geçince başlıklar taşar / ritim bozulur | Orta | Tipografi ölçeği tarayıcıda yeniden ölçülür; `Impact`'ten daha geniş olduğu için display boyutları gözden geçirilir |
 | Mobilde düşük FPS | Orta | Partikül bütçesi düşük; `IntersectionObserver` durdurma; gerekirse otomatik sadeleşme |
-| Aynı commit iki siteyi birden bozar | Yüksek | CI yeşil gate; kök site önce deploy edilir |
+| Aynı commit iki siteyi birden bozar | Yüksek | CI yeşil gate; deploy yalnızca `conclusion == 'success'` ise çalışır |
 | Yeni repo adı beğenilmez | Düşük | Ad tek satır değişiklik; build çıktısına dokunmaz |
 | 3 `.webp` kartlarda döngüsel kalıyor | Düşük | Faz 1'de dokunulmaz; arka planlar CSS gradyanına geçer |
 | Shader yazmak uzun sürer | Orta | `regimes.js` saf veri olduğu için önce atmosfer çalışır, efektler sonra eklenir |
