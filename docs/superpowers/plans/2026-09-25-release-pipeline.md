@@ -545,11 +545,19 @@ Run:
 ```powershell
 cd C:\Users\selim\subnautica-github-pages\app
 npm run test:base
-$env:PAGES_BASE='/'; npm run build; node scripts/verify-base.mjs /
-$env:PAGES_BASE='/subnautica-derinlik-gunlugu/'; npm run build; node scripts/verify-base.mjs /subnautica-derinlik-gunlugu/
-Remove-Item Env:PAGES_BASE
+npm run build:root; node scripts/verify-base.mjs /
+npm run build:subpath; node scripts/verify-base.mjs /subnautica-derinlik-gunlugu/
 ```
 Expected: `8` passing tests, then `base OK: /`, then `base OK: /subnautica-derinlik-gunlugu/`
+
+Use `build:root` / `build:subpath`, not `npm run build` with an `env:` block. The wrapper
+script is the one path that validates the base and injects `PAGES_BASE` into the vite
+child, so it is the path CI and both deploy workflows use. Verifying the bare
+`vite build` would test a code path nothing ships through.
+
+**PowerShell 5.1 note:** it wraps a native process's stderr in a `NativeCommandError`
+record even on success, because Vite writes its chunk-size warning to stderr. Assert on
+`$LASTEXITCODE`, never on stderr looking clean.
 
 - [ ] **Step 4: Restore the default build**
 
