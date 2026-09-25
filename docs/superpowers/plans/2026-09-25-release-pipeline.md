@@ -15,7 +15,7 @@
 - Source repo name is `Selim419/subnautica-source`. It **must be public** — `actions/checkout` in the Pages repos clones it with a read-only token.
 - The source remote is **SSH**: `git@github.com:Selim419/subnautica-source.git`. The user's ed25519 key is registered on GitHub, so **the agent performs every push** in this plan. The original draft assigned pushes to the user; that no longer applies.
 - The two live URLs must not both break from one commit. Guarantee: neither deploys unless source `CI` succeeded. Deploy ordering between the two sites is **not** guaranteed and is not relied upon.
-- `PAGES_BASE` values are exactly `/` and `/subnautica-derinlik-gunlugu/` — the trailing slash is required.
+- `PAGES_BASE` values are exactly `/` and `/subnautica-derinlik-gunlugu/` — the trailing slash is required, and the value must always be root-absolute (never `./` or `../`). `verifyBase` rejects a non-root-absolute built reference.
 - Build output directory is `app/dist/`, already gitignored.
 - Turkish UI copy, the 10 wiki records, `src/wikiData.js` and the 3 `.webp` files **in `app/public/`** are not touched by this plan. Deleting the *stale build-output copies* of those `.webp` files from the two Pages repos is pipeline cleanup and is explicitly in scope (Task 8); the source copies are untouched.
 - Node 22 is used in CI to match the local Node 24 toolchain's supported range; both satisfy Vite 6's requirements.
@@ -391,14 +391,25 @@ Expected: `base OK: /`
 
 ```powershell
 cd C:\Users\selim\subnautica-github-pages
-git add app/vite.config.js app/package.json app/scripts
-git commit -m "Build to dist and read base from PAGES_BASE
-
-The build emitted to ../docs with a hardcoded subpath base, which is why
-output was hand-copied into four folders. Base now comes from the
-environment, and verify-base asserts the built index.html actually
-references it."
+git add app/scripts
+git commit -m "Assert the built index.html references the expected base" -m "The test and the assertion that make the base path trustworthy. verify-base compares the base prefix of the built asset URL against the expected value exactly, so a build served with the wrong base fails loudly instead of shipping." -m "Note for future edits: the module-level regex in verify-base.mjs must not gain a g flag - exec would become stateful via lastIndex and the six tests would fail intermittently depending on order."
 ```
+
+**Three constraints Task 4 depends on:**
+
+- **The base must be root-absolute.** `verifyBase` rejects any reference not starting with
+  `/`. This is deliberate: a Vite build with `base: './'` emits `src="./assets/..."`,
+  which would otherwise normalize to `/` and pass the root check — the most common
+  alternative "fix" for the original bug, and one that silently breaks a project-page
+  deployment. `PAGES_BASE` must never be given a relative value.
+- The verifier's `dist/index.html` path is anchored to the script location via
+  `import.meta.url`, **not** the process working directory. It runs correctly from
+  anywhere. The CI workflow still sets `working-directory: app`, but only because
+  `npm ci` and `npm run` need it.
+- The module-level regex must **not** gain a `g` flag. `verifyBase` calls `exec`
+  repeatedly; with `/g`, `lastIndex` persists between calls and the results diverge.
+  This is now enforced by a test that calls `verifyBase` twice on the same html, so
+  adding the flag fails the suite immediately.
 
 ---
 
