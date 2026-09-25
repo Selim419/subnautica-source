@@ -17,7 +17,7 @@
 - The two live URLs must not both break from one commit. Guarantee: neither deploys unless source `CI` succeeded. Deploy ordering between the two sites is **not** guaranteed and is not relied upon.
 - `PAGES_BASE` values are exactly `/` and `/subnautica-derinlik-gunlugu/` — the trailing slash is required.
 - Build output directory is `app/dist/`, already gitignored.
-- Turkish UI copy, the 10 wiki records, the 3 `.webp` files and `src/wikiData.js` are **not touched** by this plan.
+- Turkish UI copy, the 10 wiki records, `src/wikiData.js` and the 3 `.webp` files **in `app/public/`** are not touched by this plan. Deleting the *stale build-output copies* of those `.webp` files from the two Pages repos is pipeline cleanup and is explicitly in scope (Task 8); the source copies are untouched.
 - Node 22 is used in CI to match the local Node 24 toolchain's supported range; both satisfy Vite 6's requirements.
 
 ---
@@ -474,14 +474,21 @@ jobs:
 
 The final step is a guard against a future `.gitignore` or `emptyOutDir` change silently producing an empty `dist`.
 
-- [ ] **Step 2: Verify the workflow is valid YAML**
+- [ ] **Step 2: Verify the workflow file has the shape the deploy workflows depend on**
+
+The deploy workflows trigger on a workflow literally named `CI`. A rename here breaks
+both deployments silently, so assert the name and the branch filter.
 
 Run:
 ```powershell
 cd C:\Users\selim\subnautica-github-pages
-node -e "const fs=require('fs');const s=fs.readFileSync('.github/workflows/ci.yml','utf8');if(!s.startsWith('name: CI'))throw new Error('workflow name must be CI');if(!s.includes('node --test')){};console.log('ci.yml shape OK',s.length,'bytes')"
+$s = Get-Content .github/workflows/ci.yml -Raw
+if ($s -notmatch '(?m)^name:\s*CI\s*$') { throw 'workflow must be named CI' }
+if ($s -notmatch 'branches:\s*\[main\]') { throw 'CI must run on main' }
+if ($s -notmatch 'verify-base\.mjs') { throw 'CI must verify the base path' }
+"ci.yml shape OK"
 ```
-Expected: `ci.yml shape OK <n> bytes`
+Expected: `ci.yml shape OK`
 
 - [ ] **Step 3: Run the same steps locally to prove CI will pass before it ever runs**
 
