@@ -10,12 +10,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: app
@@ -35,20 +36,16 @@ jobs:
         run: npm run test:base
 
       - name: Build root site
-        env:
-          PAGES_BASE: /
-        run: npm run build
+        run: npm run build:root
 
       - name: Verify root base
         run: node scripts/verify-base.mjs /
 
       - name: Build subpath site
-        env:
-          PAGES_BASE: /subnautica-derinlik-gunlugu/
-        run: npm run build
+        run: npm run build:subpath
 
       - name: Verify subpath base
         run: node scripts/verify-base.mjs /subnautica-derinlik-gunlugu/
 
-      - name: Confirm dist is not gitignored away from the build
+      - name: Confirm build emitted to app/dist
         run: test -f dist/index.html
