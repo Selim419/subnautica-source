@@ -19,12 +19,12 @@ test('accepts a matching subpath base', () => {
 test('rejects a subpath build when root was expected', () => {
   assert.throws(
     () => verifyBase(asset('/subnautica-derinlik-gunlugu/'), '/'),
-    /base/
+    /base mismatch/
   )
 })
 
 test('rejects a root build when subpath was expected', () => {
-  assert.throws(() => verifyBase(asset('/'), '/subnautica-derinlik-gunlugu/'), /base/)
+  assert.throws(() => verifyBase(asset('/'), '/subnautica-derinlik-gunlugu/'), /base mismatch/)
 })
 
 test('rejects a base without a trailing slash', () => {
@@ -33,4 +33,37 @@ test('rejects a base without a trailing slash', () => {
 
 test('rejects html with no asset references at all', () => {
   assert.throws(() => verifyBase('<html><body>nothing here</body></html>', '/'), /no asset/)
+})
+
+test('rejects a relative asset reference', () => {
+  // A Vite build with base './' is the most common wrong "fix" for the original
+  // bug. Normalizing it against a root URL would erase the difference and let
+  // it pass the '/' check, so it must be rejected before normalization.
+  for (const ref of ['./', '../']) {
+    assert.throws(
+      () => verifyBase(asset(ref), '/'),
+      /root-absolute/,
+      `expected ${ref} to be rejected as not root-absolute`
+    )
+  }
+})
+
+test('is stable across repeated calls on the same html', () => {
+  // Guards the module-level regex against gaining a `g` flag, which would make
+  // `exec` stateful via `lastIndex` and make the second call diverge.
+  const outcome = (html, expected) => {
+    try {
+      return `ok:${verifyBase(html, expected)}`
+    } catch (error) {
+      return `err:${error.message}`
+    }
+  }
+
+  for (const [html, expected] of [
+    [asset('/'), '/'],
+    [asset('/subnautica-derinlik-gunlugu/'), '/'],
+  ]) {
+    const first = outcome(html, expected)
+    assert.equal(outcome(html, expected), first)
+  }
 })
