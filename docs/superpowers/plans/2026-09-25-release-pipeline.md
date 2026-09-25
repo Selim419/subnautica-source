@@ -1,20 +1,22 @@
-# Release Pipeline Implementation Plan
+﻿# Release Pipeline Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make one `git push` to a single source repo rebuild and redeploy both live sites (`selim419.github.io/` and `selim419.github.io/subnautica-derinlik-gunlugu/`) with no manual file copying.
+**Goal:** Make one command rebuild and redeploy both live sites (`selim419.github.io/` and `selim419.github.io/subnautica-derinlik-gunlugu/`) with no manual file copying and no secrets to maintain.
 
-**Architecture:** The repo `subnautica-github-pages` is a public source repo. Vite emits to `app/dist` with `base` read from the `PAGES_BASE` env var, and a `verify-base` assertion proves the built `index.html` actually references that base. A `CI` workflow in the source repo builds and verifies both base variants; on a green build **pushed to `main`**, a second job sends a `repository_dispatch` to each Pages repo carrying the verified commit SHA. Each Pages repo checks out that SHA, rebuilds with its own base, verifies, and deploys via `actions/deploy-pages`. `workflow_run` is deliberately not used: it is repository-scoped and cannot see a workflow running in another repository.
+**Architecture:** The repo `subnautica-github-pages` is a public source repo. Vite emits to `app/dist` with `base` read from the `PAGES_BASE` env var, and a `verify-base` assertion proves the built `index.html` actually references that base. A `CI` workflow builds and verifies both base variants on every push. Neither Pages repo holds build output: each carries a `.deploy-source` file naming the exact source commit it should publish, and each has a workflow triggered by a push to its own `main` that checks out that commit, builds it with its own base, verifies, and deploys via `actions/deploy-pages`. `scripts/release.mjs` pushes the source and writes the new SHA into both Pages repos, so one command publishes both sites. There are **no secrets, tokens, or PATs** in this pipeline.
 
-**Tech Stack:** Vite 6, Node 24 (built-in `node --test`), GitHub Actions, one fine-grained PAT stored as a repository secret.
+**Tech Stack:** Vite 6, Node 24 (built-in `node --test`), GitHub Actions. No third-party actions, no stored credentials.
 
 **Plan:** 1 of 2. Plan 2 (`dive-spine`) builds the design system, scene engine and scroll dive on top of this pipeline.
 
 ## Global Constraints
 
 - Source repo name is `Selim419/subnautica-source`. It **must be public** — `actions/checkout` in the Pages repos clones it with a read-only token.
-- The source remote is **SSH**: `git@github.com:Selim419/subnautica-source.git`. The user's ed25519 key is registered on GitHub, so **the agent performs every push** in this plan. The original draft assigned pushes to the user; that no longer applies.
-- The two live URLs must not both break from one commit. Guarantee: neither deploys unless source `CI` succeeded. Deploy ordering between the two sites is **not** guaranteed and is not relied upon.
+- All three remotes are **SSH**. The user's ed25519 key is registered on GitHub, so **the agent performs every push** in this plan. The original draft assigned pushes to the user; that no longer applies.
+- The two live URLs must not both break from one commit. Guarantee: neither deploys unless its own build verified both the build and the base path.
+- Deploy ordering between the two sites is **not** guaranteed. Both `release.mjs` targets are pushed in sequence, but the two Actions runs are independent.
+- **No stored secrets exist in this pipeline.** A design using a `repository_dispatch` PAT was written, attempted, and abandoned: the token's `contents=write` grant could not be made to work, and it would have needed renewing every 90 days regardless. Do not reintroduce one without a new decision.
 - `PAGES_BASE` values are exactly `/` and `/subnautica-derinlik-gunlugu/` — the trailing slash is required, and the value must always be root-absolute (never `./` or `../`). `verifyBase` rejects a non-root-absolute built reference.
 - Build output directory is `app/dist/`, already gitignored.
 - Turkish UI copy, the 10 wiki records, `src/wikiData.js` and the 3 `.webp` files **in `app/public/`** are not touched by this plan. Deleting the *stale build-output copies* of those `.webp` files from the two Pages repos is pipeline cleanup and is explicitly in scope (Task 8); the source copies are untouched.
@@ -41,7 +43,9 @@
 
 | File | Responsibility |
 |---|---|
-| `.github/workflows/deploy.yml` | `repository_dispatch` -> checkout source at the dispatched SHA -> build -> verify -> deploy |
+| `.github/workflows/deploy.yml` | push to main -> read `.deploy-source` -> checkout that source SHA -> build -> verify -> deploy |
+| `.deploy-source` | The exact source commit this repo publishes |
+| `scripts/release.mjs` | Pushes the source, pins both Pages repos, so one command publishes both sites |
 | `README.md` | Replaces the hand-copied build output |
 
 ---
@@ -478,55 +482,16 @@ jobs:
 
       - name: Confirm build emitted to app/dist
         run: test -f dist/index.html
-
-  dispatch:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Dispatch root site
-        env:
-          GH_TOKEN: ${{ secrets.PAGES_DISPATCH_TOKEN }}
-          TARGET: Selim419/Selim419.github.io
-          SHA: ${{ github.sha }}
-        run: |
-          gh api "repos/$TARGET/dispatches" \
-            --method POST \
-            --field event_type=deploy \
-            --field "client_payload[sha]=$SHA"
-
-      - name: Dispatch subpath site
-        env:
-          GH_TOKEN: ${{ secrets.PAGES_DISPATCH_TOKEN }}
-          TARGET: Selim419/subnautica-derinlik-gunlugu
-          SHA: ${{ github.sha }}
-        run: |
-          gh api "repos/$TARGET/dispatches" \
-            --method POST \
-            --field event_type=deploy \
-            --field "client_payload[sha]=$SHA"
 ```
-
-The `dispatch` job carries three properties that matter:
-
-- `needs: build` — a red build dispatches nothing, so a broken commit cannot reach either site.
-- `if: github.event_name == 'push' && github.ref == 'refs/heads/main'` — `pull_request`
-  runs see `github.ref` as `refs/pull/N/merge`, so PR verification runs (which are
-  wanted) never dispatch. This guard is what makes the `branches: [main]` filter on
-  `workflow_run` unnecessary — and `workflow_run` is not used at all, because it is
-  repository-scoped and cannot see a workflow running in another repository.
-- `client_payload[sha]` carries the exact commit to publish, so each Pages repo builds
-  the commit that passed CI rather than whatever `main` happens to be when it runs.
-
-`gh` is preinstalled on `ubuntu-latest` and reads `GH_TOKEN` from the environment.
-`POST /repos/{owner}/{repo}/dispatches` returns **204** on success.
 
 The final step is a guard against a future `.gitignore` or `emptyOutDir` change silently producing an empty `dist`.
 
 - [ ] **Step 2: Verify the workflow file has the shape the deploy workflows depend on**
 
-The deploy workflows trigger on a workflow literally named `CI`. A rename here breaks
-both deployments silently, so assert the name and the branch filter.
+The deploy workflows do not trigger on this workflow — each Pages repo deploys on a
+push to its own `main`, naming the commit to build in `.deploy-source`. Nothing
+downstream depends on this workflow's name, but assert it anyway so an accidental
+rename surfaces here rather than as an absence of runs.
 
 Run:
 ```powershell
@@ -535,6 +500,7 @@ $s = Get-Content .github/workflows/ci.yml -Raw
 if ($s -notmatch '(?m)^name:\s*CI\s*$') { throw 'workflow must be named CI' }
 if ($s -notmatch 'branches:\s*\[main\]') { throw 'CI must run on main' }
 if ($s -notmatch 'verify-base\.mjs') { throw 'CI must verify the base path' }
+if ($s -match 'repository_dispatch') { throw 'a dispatch job crept back in' }
 "ci.yml shape OK"
 ```
 Expected: `ci.yml shape OK`
@@ -577,10 +543,7 @@ git push
 ```
 
 Then open `https://github.com/Selim419/subnautica-source/actions` and confirm the `CI`
-run succeeds. **The `dispatch` job will fail on this first push** — the
-`PAGES_DISPATCH_TOKEN` secret does not exist until Task 7 Step 2. A red dispatch job with
-that cause is expected and harmless; the `build` job is what proves CI works. Do not
-treat the dispatch failure as a regression.
+run succeeds with every step green.
 
 ---
 
@@ -588,17 +551,16 @@ treat the dispatch failure as a regression.
 
 **Files:**
 - Create: `C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml`
+- Create: `C:\Users\selim\selim419-github-io-deploy\.deploy-source`
 
 **Interfaces:**
-- Consumes: a `repository_dispatch` event with `event_type: deploy` and
-  `client_payload.sha` sent by the source repo's `CI` workflow
+- Consumes: a push to this repository's `main` containing an updated `.deploy-source`
 - Produces: a live update of `https://selim419.github.io/`. Task 7 verifies it.
 
-**Why `repository_dispatch` and not `workflow_run`:** `workflow_run` matches workflows
-**in the same repository**. `CI` runs in `Selim419/subnautica-source`; this file lives in
-`Selim419/Selim419.github.io`. A `workflow_run` trigger here would never fire.
-`repository_dispatch` is the documented cross-repository mechanism, and it also lets the
-payload name the exact commit to publish.
+**Why the pin file rather than `ref: main`:** checking out `main` would mean a push
+whichever commit `main` happened to hold when the runner started. A rapid second
+release could then publish a build older than the one it replaced. `.deploy-source`
+names the exact commit, so ordering is deterministic.
 
 - [ ] **Step 1: Write the workflow**
 
@@ -608,8 +570,8 @@ Create `C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml` w
 name: Deploy root site
 
 on:
-  repository_dispatch:
-    types: [deploy]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -618,52 +580,62 @@ permissions:
 
 concurrency:
   group: pages-root
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned source commit
+        id: pin
+        run: echo "sha=$(tr -d '[:space:]' < .deploy-source)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           repository: Selim419/subnautica-source
-          ref: ${{ github.event.client_payload.sha }}
+          ref: ${{ steps.pin.outputs.sha }}
+          path: source
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: source/app/package-lock.json
 
       - name: Install
+        working-directory: source/app
         run: npm ci
 
       - name: Build
+        working-directory: source/app
         run: npm run build:root
 
       - name: Verify base
+        working-directory: source/app
         run: node scripts/verify-base.mjs /
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: source/app/dist
 
       - uses: actions/deploy-pages@v4
 ```
 
-`pages: write` and `id-token: write` come from this repository's own `GITHUB_TOKEN` — no
-secret is involved in the deploy itself. The only secret in the whole pipeline is the
-dispatch token in the source repo.
+The first checkout has no `ref`, so it checks out this repository at the pushed commit —
+that is what makes `.deploy-source` readable. The second checkout fetches the pinned
+source into `source/`, so `source/app` is the app root and `source/app/dist` is the
+artifact path. `pages: write` and `id-token: write` come from this repository's own
+`GITHUB_TOKEN`; no secret is involved.
 
-- [ ] **Step 2: Confirm the two base values did not get swapped**
+- [ ] **Step 2: Confirm the build and verify targets were not swapped**
 
-The highest-risk copy-paste error in the pipeline: a swap still produces a green build,
-it just serves the wrong site.
+The highest-risk error in the pipeline: a swap still produces a green build, it just
+serves the wrong site.
 
 Run:
 ```powershell
@@ -671,8 +643,8 @@ $w = Get-Content C:\Users\selim\selim419-github-io-deploy\.github\workflows\depl
 if ($w -match 'build:subpath') { throw "root repo has the subpath build - swapped" }
 if ($w -notmatch 'npm run build:root') { throw "root repo must build with npm run build:root" }
 if ($w -notmatch 'verify-base\.mjs /(\r?\n|$)') { throw "root repo must verify against /" }
-if ($w -notmatch 'repository_dispatch') { throw "must trigger on repository_dispatch" }
-if ($w -notmatch 'client_payload\.sha') { throw "must build the dispatched SHA" }
+if ($w -notmatch 'client_payload|deploy-source') { throw "must build the pinned source" }
+if ($w -notmatch 'repository_dispatch') { throw "stale repository_dispatch trigger is still present" }
 "root deploy wiring OK"
 ```
 Expected: `root deploy wiring OK`
@@ -683,18 +655,11 @@ Expected: `root deploy wiring OK`
 cd C:\Users\selim\selim419-github-io-deploy
 git remote set-url origin git@github.com:Selim419/Selim419.github.io.git
 git add .github/workflows/deploy.yml
-git commit -m "Deploy root site from subnautica-source on dispatch"
+git commit -m "Deploy root site from subnautica-source on push"
 ```
 
-- [ ] **Step 4: Push**
-
-```powershell
-cd C:\Users\selim\selim419-github-io-deploy; git push
-```
-
-Nothing runs yet — a `repository_dispatch` workflow only fires when dispatched, and no
-dispatch has been sent. The workflow must be on the default branch before it can be
-triggered, so push before Task 4's dispatch job goes live.
+**Verify `git status` is clean afterwards.** An uncommitted workflow here publishes
+silently — see Task 7's note on why this bit once.
 
 ---
 
@@ -702,21 +667,22 @@ triggered, so push before Task 4's dispatch job goes live.
 
 **Files:**
 - Create: `C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml`
+- Create: `C:\Users\selim\subnautica-pages-deploy\.deploy-source`
 
 **Interfaces:**
-- Consumes: the same `repository_dispatch` event as Task 5
+- Consumes: a push to this repository's `main` containing an updated `.deploy-source`
 - Produces: a live update of `https://selim419.github.io/subnautica-derinlik-gunlugu/`
 
 - [ ] **Step 1: Write the workflow**
 
-Create `C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml` with exactly this content — identical to Task 5 except for the workflow `name`, the concurrency group, and the two `PAGES_BASE` values:
+Create `C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml` with exactly this content — identical to Task 5 except for the workflow `name`, the concurrency group, and the two build/verify lines:
 
 ```yaml
 name: Deploy subpath site
 
 on:
-  repository_dispatch:
-    types: [deploy]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
@@ -725,57 +691,64 @@ permissions:
 
 concurrency:
   group: pages-subpath
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Read the pinned source commit
+        id: pin
+        run: echo "sha=$(tr -d '[:space:]' < .deploy-source)" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           repository: Selim419/subnautica-source
-          ref: ${{ github.event.client_payload.sha }}
+          ref: ${{ steps.pin.outputs.sha }}
+          path: source
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: app/package-lock.json
+          cache-dependency-path: source/app/package-lock.json
 
       - name: Install
+        working-directory: source/app
         run: npm ci
 
       - name: Build
+        working-directory: source/app
         run: npm run build:subpath
 
       - name: Verify base
+        working-directory: source/app
         run: node scripts/verify-base.mjs /subnautica-derinlik-gunlugu/
 
       - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: app/dist
+          path: source/app/dist
 
       - uses: actions/deploy-pages@v4
 ```
 
-- [ ] **Step 2: Verify the base values were not swapped between the two repos**
+- [ ] **Step 2: Verify the two files differ only where they must**
 
 Run:
 ```powershell
-$root = Get-Content C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml -Raw
-$sub  = Get-Content C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml -Raw
-if ($root -match 'build:subpath') { throw "root repo has the subpath build - swapped" }
-if ($sub -notmatch 'npm run build:subpath') { throw "subpath repo must build with npm run build:subpath" }
-if ($sub -notmatch 'verify-base\.mjs /subnautica-derinlik-gunlugu/') { throw "subpath verify target wrong" }
-if ($root -eq $sub) { throw "the two files are identical - the base values were never changed" }
-"subpath deploy wiring OK - no swap"
+$root = Get-Content C:\Users\selim\selim419-github-io-deploy\.github\workflows\deploy.yml
+$sub  = Get-Content C:\Users\selim\subnautica-pages-deploy\.github\workflows\deploy.yml
+$diff = Compare-Object $root $sub
+if ($diff.Count -ne 8) { throw "expected exactly 8 differing lines (4 each side), got $($diff.Count)" }
+$diff | ForEach-Object { "$($_.SideIndicator)  $($_.InputObject.Trim())" }
 ```
-Expected: `subpath deploy wiring OK - no swap`
+Expected: exactly 4 lines each side, differing only in `name:`, `group:`, the `build:*`
+script, and the `verify-base.mjs` argument.
 
 - [ ] **Step 3: Convert the remote to SSH and commit**
 
@@ -783,107 +756,95 @@ Expected: `subpath deploy wiring OK - no swap`
 cd C:\Users\selim\subnautica-pages-deploy
 git remote set-url origin git@github.com:Selim419/subnautica-derinlik-gunlugu.git
 git add .github/workflows/deploy.yml
-git commit -m "Deploy subpath site from subnautica-source on dispatch"
-```
-
-- [ ] **Step 4: Push**
-
-```powershell
-cd C:\Users\selim\subnautica-pages-deploy; git push
+git commit -m "Deploy subpath site from subnautica-source on push"
 ```
 
 ---
 
-## Task 7: Add the dispatch token secret and switch both Pages repos to Actions
+## Task 7: Add the release script, enable Actions, and publish
 
 **Files:**
-- Modify: `Selim419/subnautica-source` repository settings — one Actions secret (UI only)
-- Modify: `Selim419/Selim419.github.io` settings — Pages source (UI only)
-- Modify: `Selim419/subnautica-derinlik-gunlugu` settings — Pages source (UI only)
+- Create: `scripts/release.mjs` in the source repo
+- Modify: `Selim419/Selim419.github.io` settings — Actions permissions, Pages source (UI only)
+- Modify: `Selim419/subnautica-derinlik-gunlugu` settings — Actions permissions, Pages source (UI only)
 
 **Interfaces:**
-- Consumes: Tasks 4, 5 and 6
-- Produces: the end-to-end path. The next push to the source repo rebuilds and
-  republishes both sites with no further action.
+- Consumes: Tasks 5 and 6
+- Produces: the end-to-end path. One command publishes both sites.
 
-Three UI steps the agent cannot perform. Do them in this order.
+**The UI steps cannot be skipped and their order matters.** Actions must be enabled
+before Pages will offer "GitHub Actions" as a source, and the Pages source must be
+switched before anything is published.
 
-- [ ] **Step 1: Create a fine-grained personal access token**
+- [ ] **Step 1: Write the release script**
 
-Open: **https://github.com/settings/personal-access-tokens/new**
+Create `scripts/release.mjs` in the source repo. It pushes the source, then writes the
+new SHA into `.deploy-source` in both Pages repos and pushes each. It refuses to run
+when the source repo or either Pages repo has uncommitted changes — that check exists
+because a silently uncommitted workflow file once published nothing while reporting
+success. It also takes `--force` (republish when the pin is already correct, which is
+needed after Actions is switched on since enabling it does not replay earlier runs) and
+`--dry-run`.
 
-Configure:
-- **Token name:** `subnautica-source pages dispatch`
-- **Expiration:** 90 days (it can be extended; a dispatch token has a small blast radius)
-- **Resource owner:** `Selim419`
-- **Repository access:** *Only select repositories* → select **both**
-  `Selim419.github.io` and `Selim419/subnautica-derinlik-gunlugu`
-- **Permissions → Repository permissions:** `Contents: Read and write`
+See the file in the repository for the full implementation; its contract is:
 
-That is the narrowest set that can call `POST /repos/{owner}/{repo}/dispatches`. The
-REST docs only spell out the *classic* token's `repo` scope; a classic token would carry
-write access to **every** repository on the account, which is why the fine-grained token
-is used instead. If GitHub rejects the fine-grained token with 403 during the first
-dispatch, widen to `Actions: Read and write` and retry — the error message names the
-missing permission. Do not fall back to a classic `repo` token without saying so.
+```
+node scripts/release.mjs [--force] [--dry-run]
+```
 
-Copy the generated token; it is shown only once.
+- [ ] **Step 2: USER ACTION — allow all actions in both Pages repos**
 
-- [ ] **Step 2: Add it as a secret in the source repo**
+**https://github.com/Selim419/Selim419.github.io/settings/actions** → under
+**Actions permissions** select **"Allow all actions and reusable workflows"** → **Save**
 
-Open: **https://github.com/Selim419/subnautica-source/settings/secrets/actions/new**
+**https://github.com/Selim419/subnautica-derinlik-gunlugu/settings/actions** → same
 
-- **Name:** `PAGES_DISPATCH_TOKEN` (exact — `ci.yml` references this name)
-- **Secret:** paste the token
+The "Allow Selim419 actions" option does **not** work: the workflows use
+`actions/checkout`, `actions/setup-node`, `actions/configure-pages`,
+`actions/upload-pages-artifact` and `actions/deploy-pages`, which live in GitHub's
+`actions` organisation, not under the `Selim419` account.
 
-- [ ] **Step 3: Confirm the live sites work before flipping anything**
+Leave **Workflow permissions** alone — each workflow declares its own `permissions:`
+block, which overrides the repository default.
+
+- [ ] **Step 3: USER ACTION — switch Pages to GitHub Actions in both repos**
+
+- **https://github.com/Selim419/Selim419.github.io/settings/pages** → **Source: GitHub Actions** → **Save**
+- **https://github.com/Selim419/subnautica-derinlik-gunlugu/settings/pages** → **Source: GitHub Actions** → **Save**
+
+Do not change the "Deploy from a branch" section — only the Source.
+
+- [ ] **Step 4: Confirm the live sites work before publishing anything**
 
 ```powershell
 (Invoke-WebRequest https://selim419.github.io/ -UseBasicParsing).StatusCode
 (Invoke-WebRequest https://selim419.github.io/subnautica-derinlik-gunlugu/ -UseBasicParsing).StatusCode
 ```
-Expected: `200` and `200`. This is the pre-flip baseline. If either is not 200, stop.
+Expected: `200` and `200`.
 
-- [ ] **Step 4: USER ACTION — flip the root repo to Actions**
-
-Open `https://github.com/Selim419/Selim419.github.io/settings/pages`, set **Source** to
-**GitHub Actions**, save.
-
-- [ ] **Step 5: USER ACTION — flip the subpath repo to Actions**
-
-Open `https://github.com/Selim419/subnautica-derinlik-gunlugu/settings/pages`, set
-**Source** to **GitHub Actions**, save.
-
-Nothing deploys yet — the dispatch job has not been committed. The flip only means the
-next successful dispatch will be served.
-
-- [ ] **Step 6: Commit and push the dispatch job**
+- [ ] **Step 5: Run the release**
 
 ```powershell
 cd C:\Users\selim\subnautica-github-pages
-git add .github/workflows/ci.yml
-git commit -m "Dispatch a deploy to both Pages repos after a green build"
-git push
+node scripts/release.mjs --force
 ```
+Expected: the source is pushed, then each Pages repo reports `pinned and pushed`.
 
-This push **is** the end-to-end test. It triggers `CI`, which builds both base variants,
-verifies both, and — only on a green build on `main` — dispatches to each Pages repo,
-each of which checks out this exact SHA, rebuilds with its own base, verifies, and deploys.
+**This push is the end-to-end test.** It triggers the deploy workflow in each Pages repo,
+which builds the pinned commit with its own base, verifies it, and deploys.
 
-- [ ] **Step 7: Watch all three runs go green**
+- [ ] **Step 6: Watch both deploys go green**
 
-Open:
-- `https://github.com/Selim419/subnautica-source/actions`
-- `https://github.com/Selim419/Selim419.github.io/actions`
-- `https://github.com/Selim419/subnautica-derinlik-gunlugu/actions`
+Open `https://github.com/Selim419/Selim419.github.io/actions` and
+`https://github.com/Selim419/subnautica-derinlik-gunlugu/actions`.
+Expected: `Deploy root site` and `Deploy subpath site` both `success`.
 
-Expected: `CI` green, `Deploy root site` green, `Deploy subpath site` green.
+If a deploy is red at `configure-pages`, the Pages source flip did not take. If it is
+red at `Read the pinned source commit`, `.deploy-source` is missing or empty on the
+remote — check `git status` in that repo, because an uncommitted workflow or pin
+publishes silently.
 
-If a deploy is red at the dispatch step, the cause is the token — read the 403 message
-for the missing permission and widen it per Step 1. If a deploy is red at
-`configure-pages`, the Pages source flip did not take.
-
-- [ ] **Step 8: Verify both sites serve the Actions build**
+- [ ] **Step 7: Verify both sites serve the Actions build**
 
 ```powershell
 $r = Invoke-WebRequest https://selim419.github.io/ -UseBasicParsing
@@ -895,6 +856,13 @@ if ($s.Content -notmatch 'src="/subnautica-derinlik-gunlugu/assets/') { throw "s
 "both sites live and correctly based"
 ```
 Expected: `both sites live and correctly based`
+
+- [ ] **Step 8: Verify it is repeatable**
+
+Run `node scripts/release.mjs` once more and confirm both deploys go green again. A
+pipeline that works once is not a pipeline.
+
+---
 
 ## Task 8: Remove the hand-copied build output and update the READMEs
 
@@ -1069,16 +1037,32 @@ Expected: `END TO END OK`
 
 Plan 1 is done when all of these hold:
 
-1. `git -C C:\Users\selim\subnautica-github-pages remote -v` lists `Selim419/subnautica-source`.
+1. `git -C C:\Users\selim\subnautica-github-pages remote -v` lists `Selim419/subnautica-source`,
+   and both Pages repos list SSH remotes.
 2. `npm run test:base` in `app/` reports 8 passing, 0 failing.
-3. `npm run build:subpath` followed by `node scripts/verify-base.mjs /` **fails** — the original bug is detected.
-4. Source `CI` is green on `https://github.com/Selim419/subnautica-source/actions`.
-5. Both Pages repos show a green `Deploy … site` run.
-6. Both live URLs return 200 with correctly based asset paths.
-7. No repo tracks build output; `docs/` in the source repo contains only `superpowers/`.
+3. `npm run build:subpath` followed by `node scripts/verify-base.mjs /` **fails** — the original
+   bug (F2) is detected. This is the check that makes the rest of the pipeline trustworthy.
+4. Source `CI` is green on `https://github.com/Selim419/subnautica-source/actions`, with both
+   base variants built and verified.
+5. Both Pages repos show a green `Deploy root site` / `Deploy subpath site` run.
+6. Both live URLs return 200 with correctly based asset paths:
+   `/assets/…` at the root and `/subnautica-derinlik-gunlugu/assets/…` under the subpath.
+7. A **second** `node scripts/release.mjs` also produces two green deploys. A pipeline that works
+   once is not a pipeline.
+8. `node scripts/release.mjs` **fails** when any of the three repos has uncommitted changes.
+   This is what stops an uncommitted workflow from publishing silently.
+9. No repository tracks build output. `docs/` in the source repo contains only `superpowers/`.
+10. No secret, token, or PAT exists anywhere in the pipeline. The source repo has no Actions
+    secrets, and neither Pages repo has any credential configured.
 
 ## Out of Scope
 
-- No test runner is added. `node --test` covers `verify-base` only; Vitest and the module tests arrive with Plan 2. `ci.yml` therefore has no `npm test` step yet — Plan 2 adds it.
-- The 3 `.webp` files stay in `app/public/`. Their placement in the Pages repos is removed, but the source copies are untouched.
-- Deploy ordering between the two sites is not enforced. The guarantee is "neither deploys on a red CI", not "root goes first".
+- No test runner is added. `node --test` covers `verify-base` only; Vitest and the module tests
+  arrive with Plan 2. `ci.yml` therefore has no `npm test` step yet — Plan 2 adds it.
+- The 3 `.webp` files stay in `app/public/`. Their build-output copies are removed from the
+  Pages repos, but the source copies are untouched.
+- Deploy ordering between the two sites is not enforced. Each Pages repo deploys independently
+  on its own push; the guarantee is that each one verifies its own build and base, not that
+  one site lands before the other.
+- Retry, rollback, and deployment environments are out of scope. A failed deploy leaves the
+  previously deployed artifact in place.
