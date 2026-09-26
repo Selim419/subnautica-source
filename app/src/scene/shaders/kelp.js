@@ -20,7 +20,12 @@ const KELP = {
       float sway = sin(uTime * 0.55 + aPhase + uv.y * 2.2) * 0.42 * uv.y;
       p.x += sway;
       p.z += cos(uTime * 0.41 + aPhase) * 0.16 * uv.y;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+      #ifdef USE_INSTANCING
+      vec4 instancePosition = instanceMatrix * vec4(p, 1.0);
+      #else
+      vec4 instancePosition = vec4(p, 1.0);
+      #endif
+      gl_Position = projectionMatrix * modelViewMatrix * instancePosition;
     }`,
   fragmentShader: `
     uniform float uLight, uBiolum, uFog;

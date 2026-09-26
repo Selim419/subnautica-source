@@ -6,18 +6,32 @@ import particulate from './shaders/particulate.js'
 import { REGIMES } from '../dive/regimes.js'
 
 const LERP_MS = 600
-const materialOf = (def) => new THREE.ShaderMaterial({
-  uniforms: THREE.UniformsUtils.clone(def.uniforms),
-  vertexShader: def.vertexShader,
-  fragmentShader: def.fragmentShader,
-  transparent: true,
-  depthWrite: false,
-  blending: THREE.AdditiveBlending,
-})
+const COLOR_UNIFORMS = new Set(['uWater', 'uLightColor', 'uAccent'])
+const materialOf = (def) => {
+  const uniforms = THREE.UniformsUtils.clone(def.uniforms)
+  // Shader modules declare color defaults as hex strings (so they stay
+  // dependency-free per Task 5's constraint). UniformsUtils.clone() only
+  // deep-clones recognized three.js objects (Color, Vector, etc.) and copies
+  // everything else by reference, so a string default is still a string
+  // here. buildScene's lerp path calls .lerpColors()/.clone() on these
+  // uniforms every regime change, which requires real THREE.Color instances.
+  for (const key of COLOR_UNIFORMS) {
+    const u = uniforms[key]
+    if (u && typeof u.value === 'string') u.value = new THREE.Color(u.value)
+  }
+  return new THREE.ShaderMaterial({
+    uniforms,
+    vertexShader: def.vertexShader,
+    fragmentShader: def.fragmentShader,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  })
+}
 
 function hexToV3(hex) { return new THREE.Color(hex) }
 
-export function buildScene({ container, forceNoWebGL = false } = {}) {
+export function buildScene({ container, forceNoWebGL = false, preserve = false } = {}) {
   if (!container || forceNoWebGL) {
     return {
       setTarget() {}, setAccent() {}, setProgress() {},
@@ -28,7 +42,7 @@ export function buildScene({ container, forceNoWebGL = false } = {}) {
 
   let renderer
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false })
+    renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, preserveDrawingBuffer: preserve })
   } catch (err) {
     console.warn('[ocean] WebGL unavailable, using the CSS gradient', err)
     return {
