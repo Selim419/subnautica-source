@@ -1,0 +1,45 @@
+/* Layer 1 — raw palette. The only layer read by readTokens.js, because the scene
+   shaders need numeric colours and cannot read CSS cascade layers. */
+:root {
+  --abyss:  #01080c;
+  --deep:   #04202a;
+  --water:  #0d5f74;
+  --kelp:   #a9d96b;
+  --glow:   #5fe0c8;
+  --amber:  #ffb454;
+  --coral:  #ff7a59;
+
+  --ink:          #f7fffd;
+  --ink-muted:    rgba(247, 255, 253, 0.62);
+  --ink-faint:    rgba(247, 255, 253, 0.38);
+  --surface:      #0b2730;
+  --surface-2:    #123d45;
+  --hairline:     rgba(247, 255, 253, 0.14);
+  --hairline-firm:rgba(247, 255, 253, 0.24);
+  --scrim:        rgba(1, 11, 17, 0.77);
+}
+
+/* Layer 2 — per-regime semantics. Applied via [data-regime] on a wrapper, so the
+   scene uniforms and the page colours are driven by one attribute. */
+[data-regime='daylight'] { --water: #2ec4b6; --ink: #f7fffd; --glow: #bff3ea; }
+[data-regime='twilight'] { --water: #12707e; --ink: #d7f2f5; --glow: #8fd4e8; }
+[data-regime='midnight'] { --water: #0a3550; --ink: #c6dcea; --glow: #7fe8d8; }
+[data-regime='deep']     { --water: #07303f; --ink: #a9c6d2; --glow: #5fb6cc; }
+[data-regime='biolum']   { --water: #04101c; --ink: #e2c3ff; --glow: #ffb454; }
+
+/* Layer 3 — measure. 4px base scale; six type steps; four durations. */
+:root {
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
+  --space-9: 96px; --space-10: 128px;
+
+  --text-micro: 0.6875rem;
+  --text-small: 0.8125rem;
+  --text-body:  1rem;
+  --text-lead:  1.1875rem;
+  --text-h3:    clamp(1.5rem, 2.4vw, 2rem);
+  --text-display: clamp(2.75rem, 8.5vw, 7rem);
+
+  --dur-1: 120ms; --dur-2: 240ms; --dur-3: 420ms; --dur-4: 800ms;
+  --ease-out: cubic-bezier(0.2, 0.75, 0.2, 1);
+}
