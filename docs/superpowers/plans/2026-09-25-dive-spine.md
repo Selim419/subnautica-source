@@ -402,10 +402,12 @@ describe('sampleAt', () => {
 
   it('returns the same value for the same y regardless of direction', () => {
     const boxes = makeBoxes()
+    const step = 61
+    const last = Math.floor(boxes[5].bottom / step) * step
     const down = []
-    for (let y = 0; y <= boxes[5].bottom; y += 61) down.push(metresAt(y, boxes))
+    for (let y = 0; y <= boxes[5].bottom; y += step) down.push(metresAt(y, boxes))
     const up = []
-    for (let y = boxes[5].bottom; y >= 0; y -= 61) up.push(metresAt(y, boxes))
+    for (let y = last; y >= 0; y -= step) up.push(metresAt(y, boxes))
     expect(up.reverse()).toEqual(down)
   })
 
