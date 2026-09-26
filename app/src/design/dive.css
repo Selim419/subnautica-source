@@ -1,4 +1,8 @@
-/* Dive section, tabs, cards, manifesto, final CTA. */
+/* The dive section: biome tabs, the zone card, manifesto, closing CTA.
+   Owns: .dive, .section-heading, .dive-list, .dive-tab, .dive-card and its
+   parts, .scan-ring, .card-link, .manifesto, .underlined, .final-cta and
+   .final-content. Also owns the shared .section-heading h2 rule, which the
+   wiki's .database-heading h2 deliberately overrides. */
 
 .dive{padding:128px max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,rgba(21,89,97,.19),transparent 35%),#06141c}
 
@@ -93,3 +97,9 @@
 .final-content h2 em{font-style:normal;color:var(--cyan)}
 
 .final-content p{font-size:1rem;line-height:1.6;color:#d7eeec;max-width:380px;margin:0 0 28px}
+
+@media(max-width:1160px){.manifesto-grid{grid-template-columns:1fr .75fr;gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px 1fr 20px}}
+
+@media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:1fr}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px 1fr}.dive-tab-arrow{display:none}.dive-tab b{font-size:1rem}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
+
+@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.4rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:1rem}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}
