@@ -1,0 +1,238 @@
+/* ---------------------------------------------------------------------------
+   Layer 3 (type) — the @font-face block, the three font tokens, and the scale.
+
+   Twelve rules: three families x two weights x two subsets. There is no
+   weight-less file, so every src names both the weight and the subset, and
+   there is no 600-italic face because it was never downloaded.
+
+   The family names are the rewritten internal names — Selim Sans,
+   Selim Sans Condensed, Selim Mono — not the IBM originals. The subsets were
+   renamed off the OFL Reserved Font Name "Plex", and nothing on a user's
+   machine is called "Selim …", so a font-family naming IBM Plex would match
+   nothing and fall through to the system stack. No local() sources either:
+   there is no local Selim … font to find.
+
+   Within each weight, latin-ext is declared BEFORE latin. That ordering is
+   load-bearing: the two subsets overlap, and with equal specificity the last
+   matching rule wins, so the narrower latin-ext range must come first to be
+   preferred for the codepoints the two share.
+
+   The unicode-range values below are the ranges these files actually carry,
+   taken from each file's real cmap — not the stock Google Fonts ranges. Three
+   codepoints the site genuinely uses, U+2082 SUBSCRIPT TWO, U+2197 NORTH EAST
+   ARROW and U+2198 SOUTH EAST ARROW, live in IBM's Pi subset and appear in no
+   stock range, so a stock range would silently drop those glyphs.
+
+   Verified against the woff2 cmaps with fontTools 4.57.0: every codepoint in
+   every file's cmap is inside its declared range, except U+205F in the two
+   mono latin files, which the site's copy never uses. See task-4-report.md.
+
+   Nothing in this file applies a font-family to an element. It is a token
+   layer only; the components are repointed at these tokens in Task 6.
+   --------------------------------------------------------------------------- */
+
+/* --- Selim Sans — body copy, 400 and 600 ------------------------------- */
+
+@font-face {
+  font-family: 'Selim Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/selim-sans-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/selim-sans-400-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
+    U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
+    U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Selim Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/selim-sans-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/selim-sans-600-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
+    U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
+    U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Selim Sans Condensed — every heading on the site, 500 and 600 -------
+   The condensed latin cuts carry 23 fewer punctuation codepoints than the Sans
+   and Mono cuts (235 against 258), so they get their own range. Verified
+   against the files, not assumed: the 23 are U+2000-200D, U+2010-2012, U+2015,
+   U+2028, U+2029, U+202F, U+FEFF and U+FFFD. */
+
+@font-face {
+  font-family: 'Selim Sans Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/selim-sans-condensed-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Sans Condensed';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/selim-sans-condensed-500-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2013, U+2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2033,
+    U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191, U+2193, U+2197, U+2198, U+2212,
+    U+2215;
+}
+
+@font-face {
+  font-family: 'Selim Sans Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/selim-sans-condensed-600-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Sans Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/selim-sans-condensed-600-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2013, U+2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2033,
+    U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191, U+2193, U+2197, U+2198, U+2212,
+    U+2215;
+}
+
+/* --- Selim Mono — coordinates, depths, stat readouts, 400 and 500 -------- */
+
+@font-face {
+  font-family: 'Selim Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/selim-mono-400-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/selim-mono-400-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
+    U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
+    U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Selim Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/selim-mono-500-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+}
+
+@font-face {
+  font-family: 'Selim Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/selim-mono-500-latin.woff2') format('woff2');
+  unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+    U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+    U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
+    U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
+    U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Font tokens -------------------------------------------------------
+   'Arial Narrow' is the fallback that carries the condensed width if the
+   woff2 fails, and Impact is deliberately NOT here: --display stays declared
+   in style.css until Task 6 repoints its consumers at --font-display. */
+
+:root {
+  --font-display: 'Selim Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: 'Selim Mono', ui-monospace, 'Consolas', monospace;
+  --font-body: 'Selim Sans', system-ui, sans-serif;
+}
+
+/* --- Measure -----------------------------------------------------------
+   A hard cap on line length. 68ch for running copy, 34ch for a lead
+   paragraph, which is roughly half the measure and reads as an introduction
+   rather than as a second body block. */
+
+:root {
+  --measure-body: 68ch;
+  --measure-lead: 34ch;
+}
+
+/* --- The type scale ----------------------------------------------------
+   Each step pairs a size from tokens.css with the family that carries it, a
+   line height, and a tracking value. Headings run tight and negative because
+   they are set in the condensed cut; the small steps run wide and positive
+   because they are uppercase labels. Sizes stay in tokens.css — this file
+   only decides which family, leading and tracking each step uses.
+
+   Each --type-* token is a font-shorthand token stream: size, family, leading,
+   tracking. It is meant to be substituted whole, either as a shorthand
+
+     .record-lead { font: var(--type-lead); max-width: var(--measure-lead); }
+
+   or longhand by token, since the individual parts are addressable through
+   var() on the --text-* and --font-* tokens the step is built from. */
+
+:root {
+  --type-micro:   var(--text-micro)   var(--font-body) 1.4  0.18em;
+  --type-small:   var(--text-small)   var(--font-body) 1.45 0.12em;
+  --type-body:    var(--text-body)    var(--font-body) 1.65 0;
+  --type-lead:    var(--text-lead)    var(--font-body) 1.55 0;
+  --type-h3:      var(--text-h3)      var(--font-display) 0.98 -0.015em;
+  --type-display: var(--text-display) var(--font-display) 0.86 -0.03em;
+  --type-mono:    var(--text-small)   var(--font-mono) 1.5  0.04em;
+}
