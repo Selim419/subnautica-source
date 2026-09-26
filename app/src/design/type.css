@@ -1,9 +1,11 @@
 /* ---------------------------------------------------------------------------
    Layer 3 (type) — the @font-face block, the three font tokens, and the scale.
 
-   Twelve rules: three families x two weights x two subsets. There is no
-   weight-less file, so every src names both the weight and the subset, and
-   there is no 600-italic face because it was never downloaded.
+   Twelve rules became ten: the two Sans families keep two weights x two
+   subsets, and Selim Mono keeps two weights x one, because nothing on the site
+   reaches a codepoint outside its latin cut. There is no weight-less file, so
+   every src names both the weight and the subset, and there is no 600-italic
+   face because it was never downloaded.
 
    The family names are the rewritten internal names — Selim Sans,
    Selim Sans Condensed, Selim Mono — not the IBM originals. The subsets were
@@ -139,19 +141,19 @@
     U+2215;
 }
 
-/* --- Selim Mono — coordinates, depths, stat readouts, 400 and 500 -------- */
-
-@font-face {
-  font-family: 'Selim Mono';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/selim-mono-400-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
-    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
-    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
-    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
-}
+/* --- Selim Mono — coordinates, depths, stat readouts, 400 and 500 --------
+   Two rules, not four. The latin-ext cut of each weight shipped for the whole
+   of Tasks 4 through 6b and was never fetched once: it is now measured, not
+   assumed. A cold load of both routes with the cache disabled, recording every
+   woff2 request and its initiator, returns mono 400 latin and mono 500 latin via
+   the CSS parser and no mono latin-ext request at all — the only reason the 500
+   latin-ext file was ever downloaded is that index.html preloaded it, which is
+   precisely the defect. The reason is coverage: the latin subset already carries
+   U+011E/011F, U+0130/0131, U+015E/015F and the whole U+00A0-00FF block, which
+   between them cover every letter Turkish needs, and the figures, the em dash
+   (U+2014), the degree sign (U+00B0), the subscript two (U+2082) and the arrows
+   the readouts use. So the two latin-ext files — 28,724 bytes — are deleted, and
+   the preload now points at a file that is genuinely rendered. */
 
 @font-face {
   font-family: 'Selim Mono';
@@ -164,18 +166,6 @@
     U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
     U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
     U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-
-@font-face {
-  font-family: 'Selim Mono';
-  font-style: normal;
-  font-weight: 500;
-  font-display: swap;
-  src: url('/fonts/selim-mono-500-latin-ext.woff2') format('woff2');
-  unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
-    U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
-    U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
-    U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
 }
 
 @font-face {
@@ -199,42 +189,73 @@
 
 :root {
   --font-display: 'Selim Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
-  /* RESERVED, with a named consumer: Plan 2B's HUD — the coordinate, depth and
-     stat readouts the dive spine pins over the canvas. No rule in the five
-     component files sets it today, which is why the four Selim Mono cuts ship
-     and none of them is reached for. The plan's out-of-scope note puts the
-     DepthGauge in Plan 2B, so the token stays rather than going with the face. */
   --font-mono: 'Selim Mono', ui-monospace, 'Consolas', monospace;
   --font-body: 'Selim Sans', system-ui, sans-serif;
 }
 
-/* --- Measure and the type scale: both removed, and why --------------------
-   This file used to end with --measure-body/--measure-lead and seven --type-*
-   steps, each a "font-shorthand token stream" of size, family, leading and
-   tracking. Nothing consumed any of them, and the measurement says why they
-   could not have:
+/* --- The type scale ------------------------------------------------------
+   Three ramps, held as longhand. The tokens this replaces were six `--type-*`
+   shorthand streams — one whole `font:` line each, carrying size, family,
+   leading and tracking in a single value — and every one of them was an
+   INVALID declaration that the browser dropped, because the `font` shorthand
+   takes no letter-spacing. That diagnosis was right and it has been kept: a
+   token that silently does nothing is worse than no token. The mistake was
+   deleting the scale with the broken tokens. A system whose only size token is
+   1rem is not a system, and the fix is the shape, not the absence: sizes,
+   leading and tracking are now separate tokens, applied as separate longhands,
+   so no step can be half-applied and no `font` shorthand can swallow a
+   neighbouring font-weight or font-family.
 
-   1. They do not work as documented. The `font` shorthand takes no
-      letter-spacing and no bare line-height after the family, so
-      `font: var(--type-small)` is not a smaller heading — it is an invalid
-      declaration that the browser drops, leaving the element on its inherited
-      type. Verified in Chrome, not inferred: a probe rule carrying the exact
-      token shape computed to font-size 16px, line-height normal and
-      letter-spacing normal, while a `size/leading family` control on the same
-      element computed to 44px. A token that silently does nothing is worse
-      than no token.
+   The three ramps are independent on purpose. A step is a value the components
+   can reach for, not a bundled style, and the one place a bundled step is
+   genuinely two declarations is `.dive-card-body p` in dive.css, where a size,
+   a leading and the body family all genuinely belong to one sentence. */
 
-   2. Nothing matched anyway. The five component files declare 35 distinct
-      font-size values and 8 max-widths. Exactly one, `1rem`, equals a scale
-      step, and it is applied at its four sites as --text-body. No site matches
-      a whole step, so there was no unambiguous substitution to make.
+:root {
+  /* Sizes. The bottom four are for text set at a size, and the top two are the
+     display steps. */
+  --text-micro:   0.6875rem;                 /* 11px — uppercase micro labels */
+  --text-small:   0.8125rem;                 /* 13px — small UI copy         */
+  --text-body:    1rem;                      /* 16px — running text          */
+  --text-lead:    1.1875rem;                 /* 19px — an introduction       */
+  --text-h3:      clamp(1.5rem, 2.4vw, 2rem);
+  --text-display: clamp(2.75rem, 8.5vw, 7rem);
 
-   3. Retargeting the rest is out of scope by the plan's own words — "no
-      restyling of section rhythm, macrostructure or layout" — so the scale was
-      never going to find a consumer inside this plan.
+  /* Leading, as a unitless ratio so it survives a size change. Two settings for
+     type that is set large and tight, one for running text, and one looser step
+     for the lead paragraph, which is roughly half a measure wide and reads as an
+     introduction rather than as body copy. */
+  --leading-tight: 0.86;   /* display setting, several lines deep   */
+  --leading-snug:  0.98;   /* headings                            */
+  --leading-body:  1.65;   /* running text                         */
+  --leading-prose: 1.55;   /* the lead paragraph, half-measure wide */
 
-   The sizes these steps were built from lived in tokens.css layer 3; only
-   --text-body survived there, for the same reason. If a future typography pass
-   wants a scale, it should be cut from the sizes the components actually use,
-   with the tracking left at each call site rather than folded into the step —
-   the tracking on these labels is not one value, it runs .07em to .19em. */
+  /* Tracking. Negative on the condensed display and heading settings, which are
+     set tight and gain apparent space from it; zero for running text, where
+     tracking only hurts legibility; positive and wide on the uppercase micro
+     labels, which need the letterspacing to read as a label at all. */
+  --tracking-tight: -0.03em;
+  --tracking-snug:  -0.015em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.12em;
+  --tracking-wider:  0.18em;
+}
+
+/* Five of these fifteen steps have no consumer today, and the measurement that
+   explains each is in task-6c-report.md. In short: the site's headings run from
+   2rem to 10.5rem, so the two display size steps are below the whole range; and
+   the display leading is not one value but six, from .78 to .94, so neither
+   --leading-tight nor --leading-snug is a step anything actually sits on. They
+   are kept because a scale that has been cut to today's consumers is a scale
+   that cannot be used tomorrow, and the rule this file follows is that a step
+   earns its place by naming a role — not by being reached for on the day it is
+   written. The rule that was NOT followed, and should not be, is inventing
+   steps to absorb every literal: 102 literals in the five component files are
+   left as literals precisely because no step in the scale is their value. */
+
+/* The two measure tokens, --measure-body and --measure-lead, are gone with the
+   rest of this block's predecessor. Neither the base nor the lead paragraph is
+   a capped measure on this site: the wide text blocks are .section-heading p
+   at 345px, .hero-bottom p at 440px, .dive-card-body p at 470px and
+   .wiki-hero p at 560px, so each one is set by its own max-width and there is
+   no single measure token they could share. */

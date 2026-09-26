@@ -77,21 +77,25 @@
 [data-regime='deep']     { --water: #07303f; --ink: #a9c6d2; --glow: #5fb6cc; }
 [data-regime='biolum']   { --water: #04101c; --ink: #e2c3ff; --glow: #ffb454; }
 
-/* Layer 3 — measure.
+/* Layer 3 — spacing.
 
    This block used to declare a 10-step spacing scale, six type steps and four
    motion durations. Measured against the five component files, 8 of the 10
-   spacing steps and 1 of the 6 type steps are now used; nothing else was ever
-   reachable. The deleted steps are listed in task-6b-report.md with the counts
-   that justified removing each one. What survives is only what a rule actually
-   reaches for, because a step nothing uses is a claim the stylesheet does not
-   back. The 4px base is unchanged: every value below was already a multiple
-   of 4, and the substitutions are exact, so no computed length moved. */
+   spacing steps are now used and all eight of those are below. --space-7 (48px)
+   and --space-9 (96px) are gone and stay gone: 96px appears nowhere in the
+   components at all, and the two 48px sites are a horizontal gutter inside a
+   calc() and a control's min-height, neither of which is a step in the vertical
+   rhythm — the gutter scale around them is 19/34/38/68px and the control heights
+   are 48/51px, and folding one rung of each into the spacing scale would
+   imply a rhythm those two scales do not share. See task-6c-report.md.
+
+   The type scale is not here. It moved to type.css, next to the three font
+   tokens it composes with, so that all of the type layer is in one file. The
+   six --text-* sizes that used to sit in this block are the six that are there
+   now, and the --leading-* and --tracking-* ramps beside them are new. */
 :root {
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
   --space-5: 24px; --space-6: 32px;
   --space-8: 64px;
   --space-10: 128px;
-
-  --text-body:  1rem;
 }

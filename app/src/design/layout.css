@@ -45,7 +45,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
 .inline-block{display:inline-block}
 
-.section-kicker{color:var(--glow);font-size:.75rem;letter-spacing:.19em;font-weight:800;text-transform:uppercase}
+/* The kicker is the site's archetypal uppercase micro label and the widest
+   tracking anywhere on it, so its letter-spacing is the --tracking-wider step.
+   The step is .18em and the literal it replaces was .19em: 0.01em, which is
+   0.12px per character at this size, so this is a rounding onto the scale
+   rather than a change of decision. Its size stays a literal — 0.75rem sits
+   between --text-micro and --text-small and equals neither. */
+.section-kicker{color:var(--glow);font-size:.75rem;letter-spacing:var(--tracking-wider);font-weight:800;text-transform:uppercase}
 
 .section-kicker:before{content:'';display:inline-block;width:24px;height:1px;background:currentColor;vertical-align:middle;margin-right:var(--space-3)}
 

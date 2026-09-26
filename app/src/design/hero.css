@@ -22,7 +22,10 @@
 
 .micro-label{display:flex;align-items:center;gap:11px}
 
-.hero-coord{color:var(--ink-muted)}
+/* KOORDİNATLAR 000.01° N / 4546B is a coordinate readout, so it is mono at 500
+   — the value is the point of the element. The degree sign (U+00B0) and the
+   dotted İ (U+0130) are both inside the Selim Mono latin subset. */
+.hero-coord{color:var(--ink-muted);font-family:var(--font-mono);font-weight:500}
 
 .hero h1{font-family:var(--font-display);font-size:clamp(5.1rem,10.1vw,10.5rem);line-height:.84;font-weight:900;letter-spacing:-.035em;margin:0;text-transform:uppercase;max-width:1300px}
 
@@ -34,11 +37,11 @@
 
 .hero-bottom{display:flex;justify-content:space-between;align-items:end;gap:35px;max-width:1090px;margin-top:43px}
 
-.hero-bottom p{max-width:440px;font-size:1.02rem;line-height:1.65;color:var(--ink);margin:0}
+.hero-bottom p{max-width:440px;font-size:1.02rem;line-height:var(--leading-body);color:var(--ink);margin:0}
 
 .hero-actions{display:flex;align-items:center;gap:13px}
 
-.button-primary,.button-ghost{min-height:51px;padding:15px 19px;border:1px solid var(--glow);display:inline-flex;justify-content:space-between;align-items:center;gap:27px;font-size:.73rem;letter-spacing:.12em;font-weight:900;text-transform:uppercase;white-space:nowrap;transition:transform .22s,background .22s,color .22s}
+.button-primary,.button-ghost{min-height:51px;padding:15px 19px;border:1px solid var(--glow);display:inline-flex;justify-content:space-between;align-items:center;gap:27px;font-size:.73rem;letter-spacing:var(--tracking-wide);font-weight:900;text-transform:uppercase;white-space:nowrap;transition:transform .22s,background .22s,color .22s}
 
 .button-primary{background:var(--glow);color:var(--ink-invert)}
 
@@ -52,13 +55,18 @@
 
 .button-ghost:hover{background:color-mix(in srgb,var(--glow) 14%,transparent)}
 
-.hero-rail{position:absolute;right:max(34px,calc((100vw - 1380px)/2));top:26%;bottom:21%;display:flex;align-items:center;gap:15px;writing-mode:vertical-rl;color:var(--ink-muted);font-size:.68rem;letter-spacing:.15em;z-index:4}
+/* The rail is a depth gauge: both its labels are figures (01 / 03, DERİNLİK
+   000 M), so both are mono, and at 500 because on this element the number IS
+   the content. Set on the spans, not on .hero-rail, which also holds the rule. */
+.hero-rail{position:absolute;right:max(34px,calc((100vw - 1380px)/2));top:26%;bottom:21%;display:flex;align-items:center;gap:15px;writing-mode:vertical-rl;color:var(--ink-muted);font-size:var(--text-micro);letter-spacing:.15em;z-index:4}
+
+.hero-rail span{font-family:var(--font-mono);font-weight:500}
 
 .rail-line{width:1px;flex:1;background:var(--hairline-firm);position:relative}
 
 .rail-line i{position:absolute;top:0;left:-2px;width:5px;height:40%;background:var(--glow);box-shadow:0 0 18px var(--glow)}
 
-.scroll-cue{position:absolute;left:max(34px,calc((100vw - 1380px)/2));bottom:30px;display:flex;align-items:center;gap:14px;font-size:.68rem;letter-spacing:.18em;z-index:4}
+.scroll-cue{position:absolute;left:max(34px,calc((100vw - 1380px)/2));bottom:30px;display:flex;align-items:center;gap:14px;font-size:var(--text-micro);letter-spacing:var(--tracking-wider);z-index:4}
 
 .scroll-cue div{height:1px;width:75px;background:var(--glow)}
 
@@ -74,6 +82,6 @@
 
 @media(max-width:850px){.hero-inner{width:calc(100% - 48px)}.hero-coord{display:none}}
 
-@media(max-width:600px){.hero{min-height:700px}.hero-image{background-position:60% center}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:.9}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:.68rem;padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
+@media(max-width:600px){.hero{min-height:700px}.hero-image{background-position:60% center}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:.9}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:var(--text-micro);padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
 
 @media(prefers-reduced-motion:reduce){.hero-image{transform:none!important}}
