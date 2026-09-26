@@ -30,7 +30,7 @@ browser, and the script exits 3 with a clear message when it cannot find one.
 | 375 | no | 0 | same |
 | 414 | no | 0 | same |
 | 768 | no | 3 (`button.dive-tab` — multi-line by design) | same |
-| 1440 | no | 4 (+ `button.nav-active`, duplicated label from the `TextRoll` animation) | same |
+| 1440 | no | 5 (the three `button.dive-tab`, plus `button.nav-active` and one unclassed nav button — both from the `TextRoll` animation duplicating the label) | same |
 
 `body` `overflow-x` is `hidden` at every width. `html` `overflow-x` is `visible`.
 `body` `min-width` is `320px`.
