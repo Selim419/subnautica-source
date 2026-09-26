@@ -442,7 +442,7 @@ unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130,
   U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
   U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
   U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
-  U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+  U+2193, U+2197, U+2198, U+2212, U+2215, U+205F, U+FEFF, U+FFFD;
 ```
 
 `latin`, for Condensed 500/600 — the same minus `U+2000-200D`, `U+2010`, `U+2011`, `U+2012`,
@@ -457,7 +457,11 @@ unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130,
   U+2215;
 ```
 
-`U+2082 ₂`, `U+2197 ↗` and `U+2198 ↘` are in the `latin` files but in no stock Google range —
+`U+205F` (medium mathematical space) is in the Mono `latin` cmap but was missing from its
+declared range; the condensed range above already excludes it, which is the tell. The site
+never uses it, so no glyph was lost — but an undeclared codepoint is a latent bug, so it is
+in the range now. `U+2082 ₂`, `U+2197 ↗` and `U+2198 ↘` are in the `latin` files but in no
+stock Google range —
 they live in IBM's `Pi` subset. They are kept because the site uses them, and the ranges above
 already account for them. A browser will still fetch both subsets per face, because the text is
 Turkish; see Task 2's note on payload.
@@ -478,8 +482,8 @@ Then the scale, using the `--text-*` steps from `tokens.css` and a measure cap o
 - [ ] **Step 3: Preload only the two critical faces in `app/index.html`**
 
 ```html
-<link rel="preload" href="${import.meta.env.BASE_URL}fonts/selim-sans-condensed-600-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="${import.meta.env.BASE_URL}fonts/selim-mono-500-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE_URL%fonts/selim-sans-condensed-600-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="%BASE_URL%fonts/selim-mono-500-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 ```
 
 Preload the **600 condensed** and the **500 mono** `latin-ext` faces — those are the dominant
@@ -491,9 +495,15 @@ and would have 404'd.
 `crossorigin` is required — a font preload without it is fetched twice, because fonts are
 always fetched in CORS mode.
 
-Use `${import.meta.env.BASE_URL}` for the path — the base is `/` for the root site and
+Use `%BASE_URL%` for the path — the base is `/` for the root site and
 `/subnautica-derinlik-gunlugu/` for the subpath one, and a hardcoded `/fonts/` would 404 on
 one of them. Verify this after the edit rather than assuming.
+
+`%BASE_URL%`, **not** `${import.meta.env.BASE_URL}`. Vite substitutes `%NAME%` placeholders in
+`index.html`, but `${...}` is JavaScript template syntax and is only evaluated in a JS
+module. In `index.html` it is emitted **literally**, so the preload would point at a path
+containing `${import.meta.env.BASE_URL}` and 404 on both sites. Task 4 confirmed this by
+building under both bases and reading the emitted `dist/index.html`.
 
 - [ ] **Step 4: Do NOT remove `--display: Impact` yet**
 
