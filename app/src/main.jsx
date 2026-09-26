@@ -4,7 +4,17 @@ import { AnimatePresence, motion, useScroll, useSpring } from 'motion/react'
 import { TextRoll } from './skiper58.jsx'
 import HomeView from './HomeView.jsx'
 import WikiView from './WikiView.jsx'
-import './style.css'
+// Cascade order matters: the token and type layers define the custom properties
+// the component layers consume, and the component layers are concatenated in
+// the order they were written in the old single stylesheet, so no rule changed
+// its position relative to another.
+import './design/tokens.css'
+import './design/type.css'
+import './design/layout.css'
+import './design/chrome.css'
+import './design/hero.css'
+import './design/dive.css'
+import './design/wiki.css'
 
 function App() {
   const readRoute = () => window.location.hash.startsWith('#/wiki') ? 'wiki' : 'home'
