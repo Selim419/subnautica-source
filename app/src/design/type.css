@@ -103,17 +103,42 @@
    evidence; the @font-face rules stay, because a rule nothing selects costs
    nothing and is the right declaration if that ever changes.
 
-   ONE INCONSISTENCY, recorded and not fixed here. The 500 latin rule's range
-   is the one range in the file that does NOT declare the six Turkish letters,
-   where the 600 rule directly above it does. So a 500-weight condensed setting
-   carrying İ or ş or ğ has no Selim face whose declared range covers it. It
-   renders correctly today — measured at the renderer, Ş and İ at weight 500
-   both come back as SelimSansCondensed-Medium with no fallback family — but
-   that is the browser reaching for the only loaded face in the family, not the
-   declaration asking for it, and it is one edit away from a visible fallback.
-   The only 500-weight condensed element is .ticker, so the blast radius is one
-   marquee. Widening the range would pull selim-sans-condensed-500-latin-ext
-   into the download, so it is a payload decision and not a task-7 decision. */
+   THE 500 AND 600 RANGES ARE NOW THE SAME RANGE, and they always were: the
+   note this paragraph replaces claimed that the 500 latin rule was "the one
+   range in the file that does NOT declare the six Turkish letters", and the
+   rule twelve lines below it has declared U+011E, U+011F, U+0130, U+0131,
+   U+015E and U+015F since Task 4 wrote it. The declaration was never the
+   defect. The comment was, in two ways that mattered.
+
+   It was wrong about the code, so anyone reading the file — including the next
+   task — would have gone looking for a missing codepoint list that was not
+   missing, or "fixed" a rule that needed nothing fixing.
+
+   And it was wrong about the consequence it predicted. It said that widening
+   the 500 range "would pull selim-sans-condensed-500-latin-ext into the
+   download", on the reasoning that the six letters live inside the latin-ext
+   range's U+0100-017F. They do, and that is precisely why declaring them on
+   the latin rule is what STOPS the latin-ext file being fetched. @font-face
+   selection for a codepoint is a last-declaration-wins match within a family
+   and weight, and within each weight in this file the latin rule is declared
+   after the latin-ext rule. So a codepoint the latin range names resolves to
+   the latin file, and only a codepoint the latin range does NOT name falls
+   through to latin-ext. The 600 pair is the proof already in this file: six
+   Turkish letters, weight 600, headings full of them, and
+   selim-sans-condensed-600-latin-ext is never requested. A recorded "known
+   inconsistency" that is also a wrong cost model is worse than no note: it
+   invites a future edit that trades real bytes for a phantom.
+
+   Re-verified against the files' real cmaps with fontTools 4.57.0 rather than
+   against the 600 rule, which is what the old note did and is how it went
+   wrong. All ten faces: every codepoint in every file's cmap is inside its
+   declared range, and every declared codepoint is in the file's cmap — the
+   ranges are the cmaps, not approximations of them. selim-sans-condensed-500-
+   latin.woff2 carries 235 codepoints including all six Turkish letters, and
+   the 500 and 600 ranges are now verified equal for both subsets, latin-ext
+   (201) and latin (235). The only face-wide exception is the one already
+   recorded in this file's header: U+205F in the two mono latin files, which
+   the site's copy never uses. */
 
 @font-face {
   font-family: 'Selim Sans Condensed';

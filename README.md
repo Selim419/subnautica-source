@@ -95,16 +95,33 @@ gerekecekti. Kalan tek kimlik bilgisi SSH anahtarıdır ve o sadece yerel klon i
 ## Yapı
 
 ```
-app/src/           şu an yalnızca HomeView, WikiView, OceanScene ve stil
-app/scripts/       derleme ve taban yolu doğrulama
-scripts/release.mjs  iki siteyi tek komutla yayınlar
-docs/superpowers/ tasarım ve plan belgeleri
+app/index.html                  yükleme sırası, yazı tipleri ön yüklemesi
+app/src/main.jsx                rota okuma, kabuk, stil sırası
+app/src/HomeView.jsx            ana sayfa
+app/src/WikiView.jsx            veri tabanı ve kayıt paneli
+app/src/OceanScene.jsx          prosedürel okyanus sahnesi (Three.js)
+app/src/wikiData.js             kayıt içeriği
+app/src/skiper58.jsx            üst gezinme, TextRoll etkisi
+app/src/design/tokens.css       1. katman: renk, ölçü, aralık, kırılım token'ları
+app/src/design/type.css         2. katman: @font-face, yazı tipi ve punto token'ları
+app/src/design/layout.css       3. katman: sıfırlama, kabuk, ölçüler
+app/src/design/chrome.css       gezinme, düğmeler, alt bilgi
+app/src/design/hero.css         giriş bölümü ve şerit
+app/src/design/dive.css         dalış bölümü, manifesto, kapanış
+app/src/design/wiki.css         veri tabanı sayfası
+app/src/design/readTokens.js    Three.js materyalleri için token okuyucu
+app/scripts/build-with-base.mjs taban yoluna göre derleme
+app/scripts/verify-base.mjs     derlenmiş index.html taban yolu doğrulaması
+app/scripts/visual-check.mjs   CDP ölçüm aracı (taşma, satır kayması, kırpılan metin)
+app/scripts/page-probe.js       sayfa içinde çalışan ölçüm betiği
+scripts/release.mjs             iki siteyi tek komutla yayınlar
+docs/superpowers/                tasarım ve plan belgeleri
 ```
 
-Dalış omurgasıyla gelmesi beklenen ama **henüz var olmayan** dizinler:
+`app/src/design/` üç katmanlıdır ve bu sırayla yüklenir: `tokens.css` ve `type.css`
+tüketilen özel özellikleri tanımlar, `layout.css` ve bileşen katmanları onları
+kullanır. `main.jsx` bu yedi içe aktarımı sırayla yapar; tek bir `style.css` yoktur.
 
-```
-app/src/dive/     scroll'a bağlı dalış, derinlik rejimleri   (Plan 2)
-app/src/scene/    prosedürel okyanus sahnesi (Three.js)     (Plan 2)
-app/src/design/   renk, tipografi ve ölçü token'ları        (Plan 2)
-```
+Dalış omurgası ve kaydırmaya bağlı sahne Plan 2'nin konusu. Bugün ikisi de yok:
+prosedürel sahne `app/src/OceanScene.jsx` içinde tek dosya olarak yaşıyor ve dalış
+omurgası için henüz kaynak dosya yazılmadı.

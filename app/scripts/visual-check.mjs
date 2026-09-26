@@ -1,13 +1,21 @@
 // Chrome DevTools Protocol harness - zero dependencies (Node 22+ has a global WebSocket).
 //
 // Verifies design work by measuring the real layout instead of eyeballing it:
-// horizontal overflow, clickable text that wraps, and which base path the fonts
-// actually resolved to. Screenshots go to disk so the change can be looked at too.
+// horizontal overflow, clickable text that wraps, text clipped inside a clipping
+// container, and which base path the fonts actually resolved to. Screenshots go
+// to disk so the change can be looked at too.
 //
 //   node scripts/visual-check.mjs measure   <url> [width:height ...]
 //   node scripts/visual-check.mjs shots     <url> <outDir> [width:height ...]
 //   node scripts/visual-check.mjs signature <url> [width:height ...]
 //   node scripts/visual-check.mjs signature --geometry <url> [width:height ...]
+//
+// `measure` is page-probe.js. Its output gained `clippedText` in this task and
+// the gain is deliberately additive: `overflow` is computed from the document's
+// own scrollWidth, so a page whose only defect is a heading overhanging a
+// `overflow: hidden` ancestor reads as clean no matter how many widths it is
+// measured at. `clippedText` is the check for that class - see the comment at
+// the top of the block in page-probe.js.
 //
 // `signature` is the machine check for "did this stylesheet change change the
 // rendering?". It hashes computed style **including** `color` and
