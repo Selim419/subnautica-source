@@ -22,10 +22,23 @@ npm run dev
 
 ```powershell
 cd app
+npm test                       # vitest run — regimes/biomes/useDiveDepth/buildScene, 37 test
 npm run test:base              # taban yolu kontrolü, 10 test
 npm run build:root             # base = /
 npm run build:subpath          # base = /subnautica-derinlik-gunlugu/
 ```
+
+Dalış sahnesinin kontrast ölçümü ayrı bir CDP komutuyla yapılır (Chrome/Edge yerelde
+kurulu olmalı):
+
+```powershell
+cd app
+node scripts/visual-check.mjs contrast http://127.0.0.1:5173 375:812 1440:900
+```
+
+`contrast` her `[data-contrast]` kutusunun canlı WebGL sahnesi üzerindeki en
+zayıf metin/zemin oranını ölçer ve spec §6.4/7 eşiklerine (gövde metni 4.5:1)
+göre kırmızıya düşer.
 
 Çıktı `app/dist/` altına yazılır. `PAGES_BASE` ortam değişkeninden okunur; iki site
 tek kaynaktan aynı kodu farklı taban yoluyla üretir.

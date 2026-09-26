@@ -261,3 +261,87 @@ The live `index.html` serves `assets/index-DD0rXXDc.css`, the same content hash
 `npm run build:root` produces locally, and `fonts/selim-mono-500-latin.woff2` returns 200 while
 the deleted `fonts/selim-mono-500-latin-ext.woff2` returns 404. The deployed artifact is the
 commit, not a stale one.
+
+## 2026-09-27 — Dive spine (Plan 2B) measurements
+
+Measured locally against `npm run dev` on `http://127.0.0.1:5173` (commit `1ea9a1b` plus the
+uncommitted Task 9 docs/measurement changes on top). Not yet released — see Global Constraints for
+the "no commits unless a step says so" rule and the separate release step, which this pass does
+not run.
+
+### Bundle (`npm run build:root`, gzip as reported by Vite/rollup)
+
+| Asset | Raw | Gzip |
+|---|---|---|
+| `index.html` | 2.73 kB | 1.42 kB |
+| `assets/index-*.css` | 30.36 kB | 6.33 kB |
+| `assets/index-*.js` (entry) | 427.34 kB | 139.69 kB |
+| `assets/OceanCanvas-*.js` (lazy, `React.lazy`) | 529.47 kB | 133.62 kB |
+
+Entry JS gzip is 139.69 KB, under the 180 KB budget in Global Constraints; `three` and everything
+it pulls in (`buildScene`, the shader modules, `OceanCanvas.jsx`) load only once `DiveScroll` mounts
+the lazy chunk, confirmed by `assets/OceanCanvas-*.js` existing as a separate file from the entry.
+
+The plan's own Step 1 script sums gzip size across **every** `.js` file under `dist/` and total raw
+bytes across the **whole** `dist/` directory (fonts, both hero webp images, everything), not just
+what a cold first paint actually requests. Run verbatim it reports:
+
+```
+JS gzip: 266.9 KB   total: 1424.1 KB
+```
+
+That is the entry chunk's 139.69 KB plus the lazy chunk's 133.62 KB (266.9 KiB once the 1000-based
+kB Vite reports is converted to 1024-based KiB), and the full `dist/` payload including 10 font
+files and two webp images that are not both fetched on one page view. Read against the intent in
+Global Constraints ("JS bundle gzip ≤ 180 KB" for what stays out of the lazy chunk; "first load ≤
+700 KB" for what a visitor's browser actually requests before interaction), the real first-load
+transfer is: entry JS gzip (139.69 KB) + CSS gzip (6.33 KB) + `index.html` (2.73 KB) + the one
+preloaded font `selim-mono-500-latin.woff2` (18.8 KB, already compressed) + the hero webp visible
+above the fold (~126.6 KB, already compressed) ≈ **294 KB**, well inside 700 KB. The lazy
+`OceanCanvas` chunk (133.62 KB gzip) is fetched only when `DiveScroll` actually mounts the canvas,
+not blocking first paint.
+
+`build:subpath` produces the same shape with different hashes: entry JS 139.70 KB gzip, CSS
+6.36 KB gzip, lazy chunk 133.62 KB gzip — no regression from the base-path rewrite.
+
+### Gate battery (Task 9 Step 2)
+
+| Gate | Result |
+|---|---|
+| `npm test` | 37/37 passed (4 files: `biomes.test.js`, `useDiveDepth.test.js`, `regimes.test.js`, `buildScene.test.js`) |
+| `npm run build:root` | succeeds, numbers above |
+| `npm run build:subpath` | succeeds, numbers above |
+| `npm run test:base` | 10/10 passed |
+| `visual-check.mjs measure http://127.0.0.1:5173 320:800 375:812 414:896 768:1024 1440:900` | exit 0, `overflow:false` at all 5 widths |
+| `visual-check.mjs measure http://127.0.0.1:5173/#/wiki 320:800 1440:900` | exit 0, `overflow:false` at both widths |
+| `visual-check.mjs contrast http://127.0.0.1:5173 375:812 1440:900` | exit 0, 12/12 sampled pairs pass, ratios 6.06:1–17.39:1 (all ≥ the 4.5:1 body-text floor) |
+
+`wrappedClicks` at these widths: `[]` at 320/375/414/768, `[2]` at 1440 — matches the pre-existing,
+plan-unrelated deviation already recorded for Task 8 (nav labels wrap at 1440 regardless of this
+plan; the plan's own text expected `[3]`/`[5]` at 768/1440 and that was never the measured reality).
+
+### Reduced motion and no-WebGL path (Task 9 Step 3, headless CDP)
+
+- `prefers-reduced-motion: reduce` emulated via `Emulation.setEmulatedMedia`: `.ocean-canvas` is
+  never mounted (`DiveScroll` guards the lazy `<OceanCanvas>` behind `!isReduced`), body text
+  renders the real hero copy on the CSS gradient fallback, no console errors.
+- Chrome launched with `--disable-webgl --disable-webgl2`: `OceanCanvas` still mounts its holder
+  `<div className="ocean-canvas">` (by design — it is the scene's fixed container, not the canvas
+  itself), `buildScene` fails to get a WebGL context, and the console logs exactly
+  `[ocean] WebGL unavailable, using the CSS gradient` followed by the underlying THREE error. Page
+  content is unaffected — same hero copy renders on the gradient fallback.
+
+### Deviations from the plan text recorded during Tasks 6–8 (carried here for completeness)
+
+- Tokens the plan named don't exist; mapped: `--paper`→`--ink`, `--paper-2`/`--paper-3`→`--ink-muted`,
+  `--line`→`--hairline-firm`, `--space-7`→`--space-6`, `--leading-tight`→`--leading-heading`; colour
+  literals became tokens or `color-mix()`.
+- `buildScene` converts colour uniforms to `THREE.Color`; the kelp shader applies `instanceMatrix`;
+  the water backdrop and kelp use `NormalBlending` (only rays/particulate stay additive) with
+  brightness ceilings — this, not scrim alpha, is what made the contrast gate pass, since scrim
+  alpha never touches the canvas pixels the gate samples.
+- `DiveScroll` lazy-loads `OceanCanvas` (`React.lazy` + `Suspense`) so `three` never enters the
+  entry chunk.
+- `WikiView` no longer mounts the deleted `OceanScene`; its hero image uses `ocean-hero.webp`.
+- `OceanCanvas`'s `ResizeObserver` callback null-guards `holderRef.current` for the one queued
+  notification that can still fire after unmount.
