@@ -340,7 +340,7 @@ git commit -m "Add the six biome records, three of them new"
 
 **Interfaces:**
 - Consumes: `BIOMES`, `regimeAt`.
-- Produces: `sampleAt(y, boxes) => { metres, biomeIndex, regimeIndex }`, `metresAt(y, boxes)`, `biomeIndexAt(y, boxes)`, and `useDiveDepth() => { frameRef, regimeIndex, subscribe }`.
+- Produces: `sampleAt(y, boxes) => { metres, biomeIndex, regimeIndex }`, `metresAt(y, boxes)`, `biomeIndexAt(y, boxes)`, and `useDiveDepth(sectionRefs) => { frameRef, regimeIndex, subscribe }` where `sectionRefs: RefObject<(Element | null)[]>` is the caller's array ref to the six section elements.
   - `boxes: { top: number, bottom: number }[]` — six viewport-space boxes for the six sections, in document order.
   - `frameRef: RefObject<{ y, metres, biomeIndex, regimeIndex }>` — same object identity every render.
   - `subscribe(fn): () => void` — `fn(frameRef.current)` is called after every scroll sample; returns an unsubscribe.
@@ -1198,9 +1198,7 @@ git commit -m "Own one WebGL context for the whole spine"
 
 **Interfaces:**
 - Consumes: `useDiveDepth`, `OceanCanvas`.
-- Produces: `<DiveScroll>{children}</DiveScroll>` where children are the hero and six sections; it registers six section refs itself by cloning — **no.** It receives `sectionsRef` (a `RefObject<Element[]>`) from the parent so `HomeView` controls the DOM. Simplify: `DiveScroll` owns the refs and exposes them by rendering `<div className="dive-section" ref={...}>` itself, and takes `biomes` as a prop.
-
-  Final interface: `<DiveScroll biomes={BIOMES} />` renders the six sections itself and slots the hero through a `hero` prop. `DepthGauge` takes `{ frameRef, subscribe }`.
+- Produces: `<DiveScroll hero={<Hero />} />`. `DiveScroll` owns the section refs (it renders the six `.dive-section` elements itself, importing `BIOMES` directly) and passes them to `useDiveDepth`. `DepthGauge` takes `{ frameRef, subscribe }`.
 
 - [ ] **Step 1: Write `DepthGauge.jsx`**
 
