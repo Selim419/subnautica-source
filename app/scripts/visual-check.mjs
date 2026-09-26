@@ -7,12 +7,20 @@
 //   node scripts/visual-check.mjs measure   <url> [width:height ...]
 //   node scripts/visual-check.mjs shots     <url> <outDir> [width:height ...]
 //   node scripts/visual-check.mjs signature <url> [width:height ...]
+//   node scripts/visual-check.mjs signature --geometry <url> [width:height ...]
 //
 // `signature` is the machine check for "did this stylesheet change change the
-// rendering?". It hashes the resolved layout of every element on the page, so it
-// is stable where a screenshot is not: the hero is a live WebGL canvas and the UI
-// animates, so two runs never produce the same pixels. See SIGNATURE_PROBE for
-// what is recorded and, importantly, what is deliberately left out.
+// rendering?". It hashes computed style **including** `color` and
+// `background-color`, so it moves for any palette edit by design.
+//
+// `signature --geometry` is the same walk with a box-model-only property set: no
+// colour, no gradient, no shadow, no filter, no font metrics. That makes it the
+// right check for a change that *intends* to alter colour and typeface - capture
+// it before and after and diff the two dumps. Anything that moves is either a real
+// layout regression or the deliberate consequence of different glyph widths, and
+// the dump names which element and which property so the two can be told apart.
+// It is a regression detector, not an equality gate: a task that swaps the typeface
+// is *supposed* to move every heading's box.
 //
 // Dev tool only. Never wire this into CI: the runner is Linux without a browser
 // and the script exits 3 with a clear message when it cannot find one.
@@ -65,38 +73,124 @@ const SEND_TIMEOUT = 60000
 // What IS recorded is the layout-affecting set below, plus a bounding rect
 // rounded to 0.01px, sorted by identity key so the hash cannot depend on
 // traversal order.
-const SIGNATURE_PROBE = `(async () => {
-  const PROPS = [
-    'display', 'position', 'top', 'right', 'bottom', 'left',
-    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
-    'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
-    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
-    'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
-    'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
-    'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
-    'border-top-left-radius', 'border-top-right-radius',
-    'border-bottom-left-radius', 'border-bottom-right-radius',
-    'font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch', 'font-variant',
-    'line-height', 'letter-spacing', 'word-spacing',
-    'text-align', 'text-transform', 'text-indent', 'text-overflow-wrap',
-    'color', 'background-color', 'background-image',
-    'background-position', 'background-size', 'background-repeat',
-    'box-shadow', 'opacity',
-    'gap', 'row-gap', 'column-gap',
-    'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
-    'grid-auto-flow', 'grid-auto-columns', 'grid-auto-rows',
-    'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
-    'order', 'z-index',
-    'overflow', 'overflow-x', 'overflow-y', 'overflow-wrap',
-    'visibility', 'vertical-align', 'white-space',
-    'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
-    'object-fit', 'filter', 'mix-blend-mode', 'aspect-ratio', 'content-visibility',
-  ]
+const SIGNATURE_PROPS = [
+  'display', 'position', 'top', 'right', 'bottom', 'left',
+  'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+  'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+  'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+  'border-top-left-radius', 'border-top-right-radius',
+  'border-bottom-left-radius', 'border-bottom-right-radius',
+  'font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch', 'font-variant',
+  'line-height', 'letter-spacing', 'word-spacing',
+  'text-align', 'text-transform', 'text-indent', 'text-overflow-wrap',
+  'color', 'background-color', 'background-image',
+  'background-position', 'background-size', 'background-repeat',
+  'box-shadow', 'opacity',
+  'gap', 'row-gap', 'column-gap',
+  'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+  'grid-auto-flow', 'grid-auto-columns', 'grid-auto-rows',
+  'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+  'order', 'z-index',
+  'overflow', 'overflow-x', 'overflow-y', 'overflow-wrap',
+  'visibility', 'vertical-align', 'white-space',
+  'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
+  'object-fit', 'filter', 'mix-blend-mode', 'aspect-ratio', 'content-visibility',
+]
+
+// The geometry-only set. Everything that can move a box, and nothing that only
+// changes how a box is painted or what is inside it.
+//
+// Deliberately ABSENT, and each absence is load-bearing:
+//
+//   * Every colour: `color`, `background-color`, `border-*-color`, `opacity`,
+//     `mix-blend-mode`. A palette migration changes all of them on every element
+//     by design, so recording them makes the check useless exactly when it is
+//     most needed.
+//   * `background-image`, which is where every gradient and every `color-mix()`
+//     resolves. A gradient cannot change a box, and the alpha steps this file's
+//     gradients use are a large part of what the migration rewrites.
+//   * `box-shadow` and `filter` - paint-only.
+//   * Every font metric: `font-family`, `font-size`, `font-weight`, `line-height`,
+//     `letter-spacing`, `word-spacing`, `font-stretch`, `font-variant`. This is
+//     the one that looks like a bug and is not. A task that retires a typeface
+//     *must* move every heading's box, and the rect is still recorded below, so
+//     the damage is reported with the element name attached instead of being
+//     hidden. Excluding the metrics means a *style* regression that only changes
+//     shaping is still caught through the rect.
+//   * `white-space` and the text-align group: they change wrapping, which the
+//     rect already shows, and keeping them would double-report every heading.
+//
+// `box-sizing` IS recorded: it is the one property that changes a box's outer
+// size without appearing in the rect's arithmetic, and a token migration that
+// dropped it would resize everything.
+const GEOMETRY_PROPS = [
+  'display', 'position', 'top', 'right', 'bottom', 'left',
+  'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+  'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+  'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+  'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+  'gap', 'row-gap', 'column-gap',
+  'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+  'grid-auto-flow', 'grid-auto-columns', 'grid-auto-rows',
+  'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+  'order', 'z-index',
+  'overflow', 'overflow-x', 'overflow-y',
+  'box-sizing', 'aspect-ratio',
+]
+
+// The walk is shared; only PROPS differ. The exclusions documented above apply to
+// both variants identically, because they are all enforced here rather than in
+// the property list.
+//
+// \`withLines\` is off for the full signature ON PURPOSE: the full signature's
+// hashes are recorded in docs/superpowers/baseline/, and adding a field to its
+// entries would invalidate every one of them for no benefit - the full signature
+// is a yes/no gate and does not need to say which heading moved. The geometry
+// variant is the diff tool, and a diff needs the line counts.
+const probeFor = (props, withLines) => `(async () => {
+  const PROPS = ${JSON.stringify(props)}
+  const WITH_LINES = ${withLines ? 'true' : 'false'}
   const REST_PROBE_MS = 700
   const round2 = (n) => Math.round(n * 100) / 100
   const sample = (el) => {
     const r = el.getBoundingClientRect()
     return [round2(r.x), round2(r.y), round2(r.width), round2(r.height)]
+  }
+
+  // Visual line count of an element's own text, clustered by vertical overlap.
+  // Same method as page-probe.js, and for the same reason: "SUB" and "NAUTICA"
+  // in the logo sit on one line at different tops, so counting distinct \`top\`
+  // values would lie. Null when the element renders no text boxes.
+  //
+  // This is here so a font change is reportable rather than merely visible: the
+  // rect says a heading got taller, \`lines\` says it gained a line, and the
+  // element key says which heading.
+  const lineCount = (el) => {
+    if (!el.firstChild) return null
+    const range = document.createRange()
+    range.selectNodeContents(el)
+    const rects = []
+    for (const r of range.getClientRects()) if (r.height > 0.5) rects.push(r)
+    if (!rects.length) return null
+    rects.sort((a, b) => a.top - b.top)
+    let lines = 1
+    let bandTop = rects[0].top
+    let bandBottom = rects[0].bottom
+    for (const r of rects.slice(1)) {
+      const overlap = Math.min(bandBottom, r.bottom) - Math.max(bandTop, r.top)
+      if (overlap > Math.min(bandBottom - bandTop, r.height) * 0.5) {
+        bandTop = Math.min(bandTop, r.top)
+        bandBottom = Math.max(bandBottom, r.bottom)
+      } else {
+        lines++
+        bandTop = r.top
+        bandBottom = r.bottom
+      }
+    }
+    return lines
   }
 
   const nodes = []
@@ -111,9 +205,13 @@ const SIGNATURE_PROBE = `(async () => {
       (cls ? '.' + cls.split(/\\s+/).join('.') : '') +
       ':nth-child(' + index + ')'
     const cs = getComputedStyle(el)
-    const props = {}
-    for (const prop of PROPS) props[prop] = cs[prop]
-    nodes.push({ el, key, props, first: sample(el) })
+    const out = {}
+    for (const prop of PROPS) out[prop] = cs[prop]
+    nodes.push({
+      el, key, props: out,
+      ...(WITH_LINES ? { lines: lineCount(el) } : {}),
+      first: sample(el),
+    })
     for (const child of el.children) walk(child, key)
   }
   walk(document.documentElement, '')
@@ -126,16 +224,25 @@ const SIGNATURE_PROBE = `(async () => {
     const second = sample(n.el)
     const stable = n.first.every((v, i) => v === second[i])
     if (!stable) unstableRects++
-    entries.push({ key: n.key, props: n.props, rect: stable ? n.first : null })
+    const { el, first, ...rest } = n
+    entries.push({ ...rest, rect: stable ? first : null })
   }
   return { entries, unstableRects }
 })()`
 
-const [cmd, url, ...rest] = process.argv.slice(2)
+const argv = process.argv.slice(2)
+const cmd = argv.shift()
+// `signature --geometry <url> ...` - the flag is parsed here, not as a URL, so a
+// mistaken `signature <url> --geometry` fails loudly instead of navigating to
+// the literal string "--geometry".
+const geometry = cmd === 'signature' && argv[0] === '--geometry'
+if (geometry) argv.shift()
+const url = argv.shift()
 if (!cmd || !url) {
-  console.error('usage: node scripts/visual-check.mjs <measure|shots|signature> <url> [outDir] [width:height ...]')
+  console.error('usage: node scripts/visual-check.mjs <measure|shots|signature> [--geometry] <url> [outDir] [width:height ...]')
   process.exit(2)
 }
+const rest = argv
 const outDir = cmd === 'shots' ? resolve(rest.shift()) : null
 const widths = rest.length ? rest : ['320:800', '375:812', '414:896', '768:1024', '1440:900']
 
@@ -266,7 +373,9 @@ try {
     await sleep(3800) // fonts, images and the WebGL scene
 
     const r = await send('Runtime.evaluate', {
-      expression: cmd === 'signature' ? SIGNATURE_PROBE : readFileSync(PROBE, 'utf8'),
+      expression: cmd === 'signature'
+        ? probeFor(geometry ? GEOMETRY_PROPS : SIGNATURE_PROPS, geometry)
+        : readFileSync(PROBE, 'utf8'),
       returnByValue: true, awaitPromise: true,
     })
     if (r.exceptionDetails) throw new Fail(JSON.stringify(r.exceptionDetails), 4)
@@ -280,9 +389,14 @@ try {
       // a hash collision hid it.
       metrics.elements = entries.length
       metrics.unstableRects = unstableRects
+      metrics.variant = geometry ? 'geometry' : 'full'
       metrics.signature = createHash('sha256').update(JSON.stringify(entries)).digest('hex')
-      if (process.env.SIGNATURE_DUMP) {
-        appendFileSync(process.env.SIGNATURE_DUMP, JSON.stringify({ width: w, height: h, entries }) + '\n')
+      // Two env vars, not one, so a geometry dump can never be diffed against a
+      // full one: the two have different property sets and the diff would be
+      // meaningless rather than merely noisy.
+      const dump = (geometry ? process.env.GEOMETRY_DUMP : process.env.SIGNATURE_DUMP)
+      if (dump) {
+        appendFileSync(dump, JSON.stringify({ width: w, height: h, entries }) + '\n')
       }
     } else {
       Object.assign(metrics, r.result.value)
