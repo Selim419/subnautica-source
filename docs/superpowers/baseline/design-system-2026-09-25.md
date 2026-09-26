@@ -24,7 +24,7 @@ browser, and the script exits 3 with a clear message when it cannot find one.
 
 ## Baseline table
 
-| Width | Horizontal overflow | Clickable text wrapping to 2 lines | Rendered `h1` family |
+| Width | Horizontal overflow | Clickable labels occupying >1 visual line (count) | Rendered `h1` family |
 |---|---|---|---|
 | 320 | no | 0 | `Impact, "Arial Narrow", Arial, sans-serif` |
 | 375 | no | 0 | same |
@@ -55,19 +55,35 @@ In `app/src/style.css` (21,776 bytes, the only stylesheet in `app/src`):
 | Hex literals, distinct values | **70** |
 | Hex literals inside the `:root` block | **6** |
 | …of those, custom-property token values | **4** — `--bg: #06141c`, `--surface: #0b2730`, `--cyan: #7defe4`, `--muted: #a8c6c8` |
-| Hardcoded (non-token) hex literals | **75** |
+| Hardcoded (non-token) hex literals = 81 − 4 | **77** |
 | `var(--…)` references | **71** |
 | `position: sticky` occurrences | **0** |
+
+**Definition used for "hardcoded (non-token)":** a hex literal that is not the value of a
+custom property. Every other kind of declaration counts, including the bare declarations
+inside `:root`. On that one definition the arithmetic closes exactly: **81 − 4 = 77**.
+
+The two hex literals in `:root` that are *not* token values are called out separately
+because they are not the same kind of work, and Task 3 should not treat them alike:
+
+- `color: #e8f7f5` on `:root` — a body colour with no token backing it. **In scope for
+  Task 3**; it is the natural `--ink` candidate.
+- `background: #06141c` on `:root` — already identical to `--bg`. Re-point it at
+  `var(--bg)`; there is no new token to create.
+
+An earlier version of this file said "75" and excluded both, on the reasoning that they
+"reference the same literals as `--bg` and an un-tokenised body colour". That reasoning
+describes them correctly and then excludes them anyway, which is what made the row not
+add up: 75 is the count of hex literals **outside** `:root`, a different quantity wearing
+the wrong label. Use 77.
 
 The plan's "71 hardcoded hex values" is **not** what the file contains. The number 81 is the
 real count of hex literals; 71 is the count of `var(--…)` references, which is the figure the
 plan appears to have mis-attributed. Likewise "5 tokens" is really 4 hex-valued custom
 properties — the `:root` block defines six custom properties, but `--line` is
 `rgba(140,224,221,.22)` and `--display` is a font stack, so only four carry a hex value.
-(The other two hex literals in `:root` are the bare `color:` and `background:` declarations,
-which reference the same literals as `--bg` and an un-tokenised body colour.)
 
-Task 3 migrates all of them. Verify against these numbers, not the plan's.
+Task 3 migrates all 77. Verify against these numbers, not the plan's.
 
 `position: sticky` is used **0 times** today, so switching `overflow-x: hidden` to `clip` has
 no sticky positioning to break — but the Phase 2 dive spine will add it, which is why `clip`
@@ -83,3 +99,13 @@ matters.
    one visual line at different `top` positions, so distinct `top` counts them as two lines.
    Equally, do not compare box height to `line-height`; that flags every padded 48 px button
    as two lines.
+3. The wrapped-text detector **skips inline `<a>` elements**. This is a deliberate
+   under-report, not an oversight: an inline link flows with body copy at the viewport width,
+   so it is the most likely thing to wrap, but a link inside running text wraps mid-sentence
+   by design and would flood the report with non-defects. Block-level and inline-block
+   links (nav, buttons, cards) are still measured. Do not "fix" this without accepting a
+   noisier list.
+4. `wrappedClicks` is capped at 8 entries. When the cap is hit the probe reports
+   `wrappedClicksTruncated: true`, so a truncated list is never mistaken for a clean one.
+   `offenders` is also capped at 8 and carries no such flag (it only populates when there is
+   overflow, which is a failing state anyway).

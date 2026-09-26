@@ -24,7 +24,14 @@
   // Clickable labels whose text occupies more than one visual line.
   // Rect client rects are clustered by vertical overlap: "SUB" and "NAUTICA"
   // sit on one line at different tops, so distinct `top` values would lie.
+  //
+  // Inline anchors are excluded on purpose. An inline <a> flows with body copy
+  // at the viewport width and is the most likely thing to wrap, but a link
+  // inside running text wraps mid-sentence by design and would flood this list
+  // with non-defects. Block-level and inline-block links (nav, buttons, cards)
+  // are still measured.
   const wrappedClicks = []
+  let wrappedClicksTruncated = false
   for (const el of document.querySelectorAll('a, button')) {
     const cs = getComputedStyle(el)
     if (cs.display === 'none' || cs.visibility === 'hidden') continue
@@ -58,7 +65,7 @@
         lines,
         text: label.slice(0, 40),
       })
-      if (wrappedClicks.length >= 8) break
+      if (wrappedClicks.length >= 8) { wrappedClicksTruncated = true; break }
     }
   }
 
@@ -70,6 +77,9 @@
     overflow,
     offenders,
     wrappedClicks,
+    // True when the list above hit its cap, so a capped report is never read
+    // as a clean one.
+    wrappedClicksTruncated,
     bodyOverflowX: getComputedStyle(document.body).overflowX,
     htmlOverflowX: getComputedStyle(de).overflowX,
     bodyMinWidth: getComputedStyle(document.body).minWidth,
