@@ -19,6 +19,38 @@ to `Runtime.evaluate`.
 `node scripts/visual-check.mjs shots <url> <outDir> [w:h ...]` additionally writes
 `w<width>-full.png` and `w<width>-fold.png`.
 
+`node scripts/visual-check.mjs signature <url> [w:h ...]` prints an element count and a
+SHA-256 per viewport. This is the check to use for "did this stylesheet change change the
+rendering?", because a **screenshot cannot answer it here**: `app/src/OceanScene.jsx` drives a
+continuous `requestAnimationFrame` loop, so the hero canvas never renders the same pixels twice,
+and `AnimatePresence`/`useScroll`/`useSpring` animate the UI on top of that. Two runs of
+`shots` always differ, and a human comparing them either chases canvas noise or waves through a
+real difference. The signature hashes the resolved layout of every element instead.
+
+## What the signature deliberately does not record
+
+Added in Task 5. **Do not "fix" these exclusions** — each one reintroduces a failure mode that
+has nothing to do with the change under test.
+
+| Excluded | Why |
+|---|---|
+| `transform`, and everything the animation library writes as an inline style | `useScroll`/`useSpring` drive the scroll bar's `scaleX` and `AnimatePresence` cross-fades the route wrapper, so these differ every frame. `transform` also skews `getBoundingClientRect()`, so recording it would poison the geometry too. |
+| The `<head>` subtree | Vite's dev server injects one `<style>` per imported stylesheet. Splitting one `.css` into five moves the element count by six on its own, with no rendering change whatsoever. |
+| The rect of any element that is **not at rest** | The `.ticker` marquee is `animation: marquee 25s linear infinite`, so its x offset is a frame sample — two runs seconds apart differ by ~3 px. |
+
+That last one is **measured, not inferred**: the probe takes two bounding-rect samples 700 ms
+apart and drops the rect of anything that moved. Testing `getAnimations()` metadata instead is
+tempting and wrong — `.hero-inner` carries scroll-linked Motion values that report as running
+forever, which would silently drop the `h1` rect, the single most important box on the page.
+Two samples keep those elements, because they genuinely do not move while the scroll is still.
+The number dropped is reported as `unstableRects` (9 on `/`, 0 on `/#/wiki`) so a dropped rect
+can never be read as a matching one. A dropped rect is **not** a free pass: the element's
+computed properties are still hashed, and those are the untransformed used values.
+
+`sorted by identity key` — a path built from tag name, id, class list and `:nth-child` — so the
+hash cannot depend on traversal order, and the same node produces the same key before and after
+an edit.
+
 This is a **dev tool**. It must never be wired into CI: the CI runner is Linux without a
 browser, and the script exits 3 with a clear message when it cannot find one.
 
@@ -148,3 +180,25 @@ The two faces Task 4 preloads are `selim-sans-condensed-600-latin-ext.woff2` and
    `wrappedClicksTruncated: true`, so a truncated list is never mistaken for a clean one.
    `offenders` is also capped at 8 and carries no such flag (it only populates when there is
    overflow, which is a failing state anyway).
+
+## The `/#/wiki` route has no baseline table
+
+The table above measures `/`. The app has no router library — routing is
+`window.location.hash.startsWith('#/wiki')` — so `/#/wiki` is a second real page, and it is the
+one `wiki.css` mostly governs. Task 5 recorded its first numbers while verifying the CSS split,
+and they are **not** the home numbers:
+
+| Width | Horizontal overflow | Clickable labels >1 line | `scrollHeight` |
+|---|---|---|---|
+| 320 | no | 8, **truncated** | 5296 |
+| 375 | no | 8, **truncated** | 5120 |
+| 414 | no | 8, **truncated** | 5071 |
+| 768 | no | 8, **truncated** | 3334 |
+| 1440 | no | 8, **truncated** | 2864 |
+
+`wrappedClicksTruncated: true` at every width, so the real count is higher. That is expected and
+not a defect: the wiki grid's cards are tall and their kicker/title/summary stack, so most of
+them wrap. `overflow` is `false` and `offenders` is `[]` at all five widths, which is the part
+that matters. Any later task touching the wiki must reproduce these `scrollHeight` values
+exactly, since they are the cheapest single number that catches a dropped or reordered rule.
+

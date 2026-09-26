@@ -4,14 +4,22 @@
 // horizontal overflow, clickable text that wraps, and which base path the fonts
 // actually resolved to. Screenshots go to disk so the change can be looked at too.
 //
-//   node scripts/visual-check.mjs measure <url> [width:height ...]
-//   node scripts/visual-check.mjs shots   <url> <outDir> [width:height ...]
+//   node scripts/visual-check.mjs measure   <url> [width:height ...]
+//   node scripts/visual-check.mjs shots     <url> <outDir> [width:height ...]
+//   node scripts/visual-check.mjs signature <url> [width:height ...]
+//
+// `signature` is the machine check for "did this stylesheet change change the
+// rendering?". It hashes the resolved layout of every element on the page, so it
+// is stable where a screenshot is not: the hero is a live WebGL canvas and the UI
+// animates, so two runs never produce the same pixels. See SIGNATURE_PROBE for
+// what is recorded and, importantly, what is deliberately left out.
 //
 // Dev tool only. Never wire this into CI: the runner is Linux without a browser
 // and the script exits 3 with a clear message when it cannot find one.
 
 import { spawn } from 'node:child_process'
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { appendFileSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 
 const CHROME_CANDIDATES = [
@@ -25,9 +33,107 @@ const PROBE = resolve(import.meta.dirname, 'page-probe.js')
 const PROFILE = resolve(process.env.TEMP, 'opencode', 'cdp-profile3')
 const SEND_TIMEOUT = 60000
 
+// Runs inside the page. Returns one record per element: a stable identity plus
+// the resolved layout that a stylesheet edit could plausibly change.
+//
+// DELIBERATE EXCLUSIONS - do not "fix" these, they will produce spurious failures
+// that have nothing to do with the change under test:
+//
+//   * `transform`, and every property the animation library writes as an inline
+//     style. `useScroll`/`useSpring` drive the scroll-progress bar's scaleX and
+//     `AnimatePresence` cross-fades the route wrapper, so those values differ on
+//     every single frame. They are not layout, and they are not what a CSS move
+//     should be judged on. `transform` also skews getBoundingClientRect, so
+//     recording it would poison the geometry too.
+//   * The bounding rect of any element whose box is not at rest. This is
+//     measured, not guessed: the probe takes two samples a fixed interval apart
+//     and drops the rect of anything that moved in between. The `.ticker`
+//     marquee is `animation: marquee 25s linear infinite`, so its x offset is a
+//     frame sample and two runs seconds apart differ by ~3px - the same would
+//     happen after any unrelated edit. Testing the animation *metadata* instead
+//     would be worse: `.hero-inner` carries scroll-linked Motion values that
+//     report as running forever, which would silently drop the `h1` rect, the
+//     single most important box on the page. Comparing two samples keeps the
+//     scroll-linked elements, because they genuinely do not move while the
+//     scroll position is still. `unstableRects` is reported so a dropped rect
+//     can never be read as a matching one.
+//   * The `<head>` subtree. Vite's dev server injects one <style> element per
+//     imported stylesheet, so splitting one .css into five legitimately changes
+//     the head's child count. That is a build-tool artefact, not a rendering
+//     difference, and the element count would move with it.
+//
+// What IS recorded is the layout-affecting set below, plus a bounding rect
+// rounded to 0.01px, sorted by identity key so the hash cannot depend on
+// traversal order.
+const SIGNATURE_PROBE = `(async () => {
+  const PROPS = [
+    'display', 'position', 'top', 'right', 'bottom', 'left',
+    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+    'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+    'padding-top', 'padding-right', 'padding-bottom', 'padding-left',
+    'border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width',
+    'border-top-style', 'border-right-style', 'border-bottom-style', 'border-left-style',
+    'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color',
+    'border-top-left-radius', 'border-top-right-radius',
+    'border-bottom-left-radius', 'border-bottom-right-radius',
+    'font-family', 'font-size', 'font-weight', 'font-style', 'font-stretch', 'font-variant',
+    'line-height', 'letter-spacing', 'word-spacing',
+    'text-align', 'text-transform', 'text-indent', 'text-overflow-wrap',
+    'color', 'background-color', 'background-image',
+    'background-position', 'background-size', 'background-repeat',
+    'box-shadow', 'opacity',
+    'gap', 'row-gap', 'column-gap',
+    'grid-template-areas', 'grid-template-columns', 'grid-template-rows',
+    'grid-auto-flow', 'grid-auto-columns', 'grid-auto-rows',
+    'flex', 'flex-basis', 'flex-direction', 'flex-flow', 'flex-grow', 'flex-shrink', 'flex-wrap',
+    'order', 'z-index',
+    'overflow', 'overflow-x', 'overflow-y', 'overflow-wrap',
+    'visibility', 'vertical-align', 'white-space',
+    'list-style', 'list-style-type', 'list-style-position', 'list-style-image',
+    'object-fit', 'filter', 'mix-blend-mode', 'aspect-ratio', 'content-visibility',
+  ]
+  const REST_PROBE_MS = 700
+  const round2 = (n) => Math.round(n * 100) / 100
+  const sample = (el) => {
+    const r = el.getBoundingClientRect()
+    return [round2(r.x), round2(r.y), round2(r.width), round2(r.height)]
+  }
+
+  const nodes = []
+  const walk = (el, parentKey) => {
+    // The head is skipped, not just its <style> children: Vite injects one
+    // <style> per imported stylesheet, so this is a build-tool artefact.
+    if (el.localName === 'head') return
+    const cls = typeof el.className === 'string' ? el.className.trim() : ''
+    const index = Array.prototype.indexOf.call(el.parentNode.children, el) + 1
+    const key = parentKey + '>' + el.localName +
+      (el.id ? '#' + el.id : '') +
+      (cls ? '.' + cls.split(/\\s+/).join('.') : '') +
+      ':nth-child(' + index + ')'
+    const cs = getComputedStyle(el)
+    const props = {}
+    for (const prop of PROPS) props[prop] = cs[prop]
+    nodes.push({ el, key, props, first: sample(el) })
+    for (const child of el.children) walk(child, key)
+  }
+  walk(document.documentElement, '')
+
+  await new Promise((r) => setTimeout(r, REST_PROBE_MS))
+
+  const entries = []
+  let unstableRects = 0
+  for (const n of nodes) {
+    const second = sample(n.el)
+    const stable = n.first.every((v, i) => v === second[i])
+    if (!stable) unstableRects++
+    entries.push({ key: n.key, props: n.props, rect: stable ? n.first : null })
+  }
+  return { entries, unstableRects }
+})()`
+
 const [cmd, url, ...rest] = process.argv.slice(2)
 if (!cmd || !url) {
-  console.error('usage: node scripts/visual-check.mjs <measure|shots> <url> [outDir] [width:height ...]')
+  console.error('usage: node scripts/visual-check.mjs <measure|shots|signature> <url> [outDir] [width:height ...]')
   process.exit(2)
 }
 const outDir = cmd === 'shots' ? resolve(rest.shift()) : null
@@ -159,9 +265,28 @@ try {
     if (nav.errorText) throw new Fail(`cannot load ${url}: ${nav.errorText}`, 1)
     await sleep(3800) // fonts, images and the WebGL scene
 
-    const r = await send('Runtime.evaluate', { expression: readFileSync(PROBE, 'utf8'), returnByValue: true, awaitPromise: true })
+    const r = await send('Runtime.evaluate', {
+      expression: cmd === 'signature' ? SIGNATURE_PROBE : readFileSync(PROBE, 'utf8'),
+      returnByValue: true, awaitPromise: true,
+    })
     if (r.exceptionDetails) throw new Fail(JSON.stringify(r.exceptionDetails), 4)
-    Object.assign(metrics, r.result.value)
+
+    if (cmd === 'signature') {
+      const { entries, unstableRects } = r.result.value
+      // Sorted by identity so the hash cannot depend on traversal order.
+      entries.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0))
+      // The count is reported next to the hash on purpose: if the element count
+      // moves, there is a rendering difference even in the impossible case that
+      // a hash collision hid it.
+      metrics.elements = entries.length
+      metrics.unstableRects = unstableRects
+      metrics.signature = createHash('sha256').update(JSON.stringify(entries)).digest('hex')
+      if (process.env.SIGNATURE_DUMP) {
+        appendFileSync(process.env.SIGNATURE_DUMP, JSON.stringify({ width: w, height: h, entries }) + '\n')
+      }
+    } else {
+      Object.assign(metrics, r.result.value)
+    }
 
     if (outDir) {
       await send('Emulation.setDeviceMetricsOverride', {
