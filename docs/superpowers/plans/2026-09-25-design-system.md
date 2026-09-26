@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the ad-hoc visual layer with a token system and real typefaces — 71 hardcoded hex values become ~20 named tokens, `Impact` and `Arial` are gone, and the result is verified at four mobile widths by measurement rather than by eye.
+**Goal:** Replace the ad-hoc visual layer with a token system and real typefaces — the 66 distinct hardcoded hex values in `style.css` become named tokens, `Impact` and `Arial` are gone, and the result is verified at four mobile widths by measurement rather than by eye.
 
-**Architecture:** `style.css` (one file, 290 classes, 21 KB) splits into `src/design/` — `tokens.css` (three layers: raw palette, per-regime semantics, measure), `type.css` (`@font-face` plus the type scale), `layout.css` (grid, section rhythm, breakpoints) — plus per-component files. The split and the token migration are separate tasks so the split is verifiable as a pixel-identical move before any colour changes. `readTokens.js` reads layer one into JS so the Phase 2 scene shaders can consume the same palette.
+**Architecture:** `style.css` (one file, 290 classes, 21 KB, 81 hex literals of which only 4 are token declarations) splits into `src/design/` — `tokens.css` (three layers: raw palette, per-regime semantics, measure), `type.css` (`@font-face` plus the type scale), `layout.css` (grid, section rhythm, breakpoints) — plus per-component files. The split and the token migration are separate tasks so the split is verifiable as a pixel-identical move before any colour changes. `readTokens.js` reads layer one into JS so the Phase 2 scene shaders can consume the same palette.
 
 **Tech Stack:** Vite 6, React 19, IBM Plex (self-hosted, OFL 1.1), Chrome DevTools Protocol for verification (no dependencies — Node 22+ ships a global `WebSocket`).
 
@@ -34,11 +34,11 @@ Measured on 2026-09-25 against the live site with the CDP harness. This is the "
 | 375 | no | 0 | same |
 | 414 | no | 0 | same |
 | 768 | no | 3 (`button.dive-tab` — multi-line by design) | same |
-| 1440 | no | 4 (+ `button.nav-active`, duplicated label from the `TextRoll` animation) | same |
+| 1440 | no | 5 (the three `dive-tab`, plus `button.nav-active` and one unclassed nav button, both from the `TextRoll` animation duplicating the label) | same |
 
-`body` `overflow-x` is `hidden` at every width. `html` `overflow-x` is `visible`.
+`body` `overflow-x` is `hidden` at every width. `html` `overflow-x` is `visible`. Measured in `app/src/style.css`: 81 hex literal occurrences, 70 distinct values, 4 of them token declarations (`--bg`, `--surface`, `--cyan`, `--muted` — `--line` is an `rgba()`), leaving **66 distinct values hardcoded into rules**. There are 71 `var(--…)` references and 0 `position: sticky`.
 
-**Two detector caveats, so a later task does not "fix" a non-bug:** `button.dive-tab` legitimately occupies two lines (four children lay out as two rows), and `button.nav-active` renders its label twice because the `TextRoll` effect keeps both copies in the DOM. Neither is a defect.
+**Two detector caveats, so a later task does not "fix" a non-bug:** `button.dive-tab` legitimately occupies two lines (four children lay out as two rows), and the nav buttons render their label twice because the `TextRoll` effect keeps both copies in the DOM — that is why 1440 reports five wrapped entries rather than three.
 
 ## File Structure
 
@@ -179,8 +179,7 @@ stop and report it — that contradicts the recorded baseline.
 - [ ] **Step 4: Write the baseline record**
 
 Create `docs/superpowers/baseline/design-system-2026-09-25.md` containing the table from this
-plan's **Verified Baseline** section, plus: the count of hardcoded hex values in `app/src/style.css`
-and how many are tokens (71 and 5), the statement that `position:sticky` appears 0 times today,
+plan's **Verified Baseline** section, plus the measured colour counts — 81 hex literals, 70 distinct, 4 token declarations, 66 distinct hardcoded into rules — and the statement that `position:sticky` appears 0 times today,
 and the two detector caveats. Later tasks compare against this file.
 
 - [ ] **Step 5: Commit**
@@ -500,7 +499,7 @@ git commit -m "Split style.css into design/ by concern, no value changes"
 cd C:\Users\selim\subnautica-github-pages\app\src\design
 Select-String -Path *.css -Pattern '#[0-9a-fA-F]{3,8}|rgba?\(' | Measure-Object | Select-Object -ExpandProperty Count
 ```
-Write down the mapping. Values that are genuinely one-off — a single highlight inside one
+There are 66 distinct values to place, across 81 literal occurrences. Write down the mapping. Values that are genuinely one-off — a single highlight inside one
 component — get **their own named token** in layer 1 rather than being left inline. The
 locked-token gate is not satisfied by replacing 60 of 71 values.
 
@@ -695,7 +694,7 @@ git commit -m "Record the design-system after-baseline"
 This plan is done when all of these hold:
 
 1. `npm run test:base` passes; `npm run build:root` then `verify-base.mjs /` reports `base OK: /`.
-2. `grep` finds **zero** hardcoded hex values in `app/src/design/*.css` outside `tokens.css`.
+2. `grep` finds **zero** hardcoded hex values in `app/src/design/*.css` outside `tokens.css` (the 66 distinct values measured in the baseline are all migrated).
 3. `grep` finds no `Impact` in any stylesheet or in `app/index.html`, and no `Arial` outside a
    fallback stack in `tokens.css` / `type.css`.
 4. No `font-family` declaration bypasses a `--font-*` token.

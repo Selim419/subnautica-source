@@ -32,7 +32,7 @@ daha çekici hâle getirmek. Kütüphaneler zaten kuruludur; kullanım derinleş
 | F9 | Kaynak dosyalar doğru UTF-8; Türkçe karakterler bozuk değil | `app/index.html:7-8` |
 | F10 | Yalnızca 3 `.webp` görsel var, kartlar arasında döngüsel kullanılıyor | `app/public/` |
 | F11 | `gh` CLI girişsiz, `credential.helper` boş, token yok → **push kullanıcı tarafından yapılacak** | doğrulandı |
-| F12 | `style.css` içinde **71 benzersiz hardcoded hex**, yalnızca 5'i token. `--cyan` bile kullanılmadan `#0c5e66`, `#24939a` gibi değerler yazılmış | taramayla ölçüldü |
+| F12 | `style.css` içinde 81 hex literal, **70 benzersiz hex değer**; bunların yalnızca **4'ü** token olarak tanımlı, **66'sı** doğrudan kural içine gömülü. `--cyan` bile kullanılmadan `#0c5e66`, `#24939a` yazılmış | taramayla ölçüldü |
 | F13 | Token tabanlı boşluk ölçeği yok; ölçüler doğrudan px olarak yazılmış (`padding:128px`, `145px`, `64px`) | taramayla ölçüldü |
 
 ### 1.3 Kapsam dışı
@@ -238,7 +238,7 @@ değildir. Altıncı madde hariç bunlar bir denetim listesidir, tartışmaya a�
    içi hex, `oklch()` veya `rgb()` ve token'ı atlayan bir `font-family: "Font Adı"`
    bildirimi kabul edilmez. Gerekli ama token'da olmayan bir değer önce token
    bloğuna yeni bir isimle eklenir, sonra referanslanır.
-   *Bu, F12'nin (71 hardcoded hex) karşılığıdır — sayı 20'ye inmeli.*
+   *Bu, F12’nin (66 benzersiz token dışı hex) karşılığıdır — sayı 20’ye inmeli.*
 2. **Dürüst içerik.** Kullanıcı vermediği hiçbir sayı uydurulamaz. "3 biyom keşfedildi",
    "50.000+ hayran", "%47 artış" gibi ifadeler yapılmaz. Dalış deneyimi bir sayaç
    göstermeye zorlanırsa, gerçek değer `localStorage`'da tutulmuyorsa gösterilmez.
