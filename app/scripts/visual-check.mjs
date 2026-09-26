@@ -43,8 +43,15 @@
 //
 // The reported `threshold` says which number applied and why. The exit code is
 // non-zero if any sampled pair falls short, if a computed colour cannot be
-// parsed, or if a regime had nothing to measure: "0 elements checked" must
-// never be readable as "0 failures".
+// parsed, if a regime could not be reached, or if a regime had nothing to
+// measure: "0 elements checked" must never be readable as "0 failures".
+//
+// Sampling is per regime, not per page load: before each row the harness scrolls
+// that regime's section to useDiveDepth's reading line and settles, so the row
+// labels the state that was actually measured (spec §6.4/7 - "at each regime
+// boundary, while the text is in that regime"). A canvas buffer that copies as
+// fully transparent is `unreadable`, never a black scene: an unmeasured pair
+// must fail, not pass.
 //
 // Until the dive spine installs `window.__diveProbe` there is nothing to sample,
 // so a width reports `no-canvas` and the run still exits 0 - the scene does not
@@ -69,6 +76,10 @@ const PORT = 9335
 const PROBE = resolve(import.meta.dirname, 'page-probe.js')
 const PROFILE = resolve(process.env.TEMP, 'opencode', 'cdp-profile3')
 const SEND_TIMEOUT = 60000
+// One settle delay for everything: fonts, images, the WebGL scene, and the scene
+// catching up after `contrast` scrolls a regime into view. Shared so a change to
+// it changes every command at once.
+const SETTLE_MS = 3800
 
 // `--amber` from app/src/design/tokens.css (#ffb454) as a comparable triple.
 // spec §6.4/7 folds the §8.2 `--amber >= 7:1` check into the text-contrast rule,
@@ -402,10 +413,20 @@ const CONTRAST_PROBE = `
           const data = ctx.getImageData(sx, sy, sw, sh).data
           let lightest = 0
           let lightestRgb = [0, 0, 0]
+          let painted = false
           for (let i = 0; i < data.length; i += 4) {
+            // A cleared or never-rendered WebGL buffer copies as transparent
+            // black, which would otherwise measure as a perfect dark scene and
+            // pass pale ink at ~19:1. Fail closed instead: alpha 0 means nothing
+            // was rendered here, and a genuinely black scene keeps alpha 255.
+            if (data[i + 3] === 0) continue
+            painted = true
             const rgb = [data[i], data[i + 1], data[i + 2]]
             const l = lum(rgb)
             if (l > lightest) { lightest = l; lightestRgb = rgb }
+          }
+          if (!painted) {
+            return bail('unreadable', 'canvas buffer is empty - every sampled pixel under this element is transparent (is preserveDrawingBuffer set on the renderer, or has the scene not rendered yet?)')
           }
 
           const fg = text.alpha < 1
@@ -500,14 +521,64 @@ const withPreserve = (u) => {
   return head + (head.includes('?') ? '&' : '?') + 'preserve=1' + tail
 }
 
+// The single place any command loads a page: viewport override, navigate, the
+// error check, and the settle delay. `measure`, `signature`, `shots` and
+// `contrast` all route through it, so the delay or the error handling can never
+// drift between them.
+const goto = async (send, target, w, h) => {
+  await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 })
+  const nav = await send('Page.navigate', { url: target })
+  if (nav.errorText) throw new Fail(`cannot load ${target}: ${nav.errorText}`, 1)
+  await sleep(SETTLE_MS) // fonts, images and the WebGL scene
+}
+
+// The contract `contrast` sampling rests on, and the work only the harness can
+// do because only the harness knows the index:
+//
+//   * `window.__diveProbe()` is installed by DiveScroll and returns one index
+//     per `.dive-section` in DOM order; `window.__diveContrast(i)` is installed
+//     by CONTRAST_PROBE in this file. Neither exists until the scene does, which
+//     is why a page without them reports `no-canvas` instead of a measurement.
+//   * useDiveDepth reads the scene at READING_LINE = innerHeight * 0.5 and takes
+//     the last section box whose top is at or above that line as the active
+//     biome - so index i means "section i at the reading line", not "whatever
+//     position the page happened to load at". The harness therefore scrolls
+//     section i's box onto the line itself, waits the settle delay, and only
+//     then measures: spec §6.4/7 samples at each regime boundary *while the text
+//     is in that regime*.
+//   * Two conditions are checked and reported back per row - the reading line
+//     must end up inside section i (otherwise the scene shows another regime and
+//     the label would be a lie), and section i's `[data-contrast]` inner must be
+//     on screen (otherwise the probe has nothing to measure). Either failing is
+//     a fail-closed `unscrolled` row, not a skipped one.
+const putInRegime = async (send, regimeIndex) => {
+  const r = await send('Runtime.evaluate', {
+    expression: `(() => {
+  const sections = document.querySelectorAll('.dive-section')
+  const el = sections[${regimeIndex}]
+  if (!el) return { ok: false, detail: 'section ${regimeIndex} not found (' + sections.length + ' .dive-section elements) - the page cannot be put in that regime, so nothing was measured' }
+  const line = Math.round(innerHeight * 0.5)
+  const box = el.getBoundingClientRect()
+  window.scrollTo({ top: Math.round(scrollY + box.top + box.height / 2 - line), behavior: 'instant' })
+  const after = el.getBoundingClientRect()
+  if (after.top > line || after.bottom < line) return { ok: false, detail: 'the reading line cannot be moved inside section ${regimeIndex} (clamped at scrollY ' + Math.round(scrollY) + ') - the scene would show another regime, so nothing was measured' }
+  const inner = el.querySelector('[data-contrast]')
+  const ir = inner && inner.getBoundingClientRect()
+  return { ok: true, scrolledTo: Math.round(scrollY), textOnScreen: !!ir && ir.bottom > 0 && ir.top < innerHeight }
+})()`,
+    returnByValue: true, awaitPromise: true,
+  })
+  if (r.exceptionDetails) throw new Fail(JSON.stringify(r.exceptionDetails), 4)
+  const state = r.result.value
+  if (state && state.ok) await sleep(SETTLE_MS) // let the scene catch up with the new position
+  return state
+}
+
 // One width of the `contrast` gate, riding the same CDP connection `measure`
 // uses - PORT is pinned, so a second client would fight this one for the single
 // browser instance. Launch, error handling and teardown stay where they are.
 const contrastAt = async (send, w, h) => {
-  await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 })
-  const nav = await send('Page.navigate', { url: withPreserve(url) })
-  if (nav.errorText) throw new Fail(`cannot load ${url}: ${nav.errorText}`, 1)
-  await sleep(3800) // fonts, images and the WebGL scene
+  await goto(send, withPreserve(url), w, h)
 
   const install = await send('Runtime.evaluate', { expression: CONTRAST_PROBE, returnByValue: true })
   if (install.exceptionDetails) throw new Fail(JSON.stringify(install.exceptionDetails), 4)
@@ -547,6 +618,17 @@ const contrastAt = async (send, w, h) => {
       })
       continue
     }
+    // Put the page in this regime's state first - see putInRegime for the full
+    // contract. A row that cannot be positioned reports why and fails; it is
+    // never dropped, and never measured in whatever state the page was in.
+    const state = await putInRegime(send, regimeIndex)
+    if (!state || state.ok !== true) {
+      entries.push({
+        width: w, regimeIndex, status: 'unscrolled', pass: false,
+        detail: (state && state.detail) || 'the page could not be positioned for this regime, so nothing was measured',
+      })
+      continue
+    }
     const r = await send('Runtime.evaluate', {
       expression: `window.__diveContrast(${JSON.stringify(regimeIndex)})`,
       returnByValue: true, awaitPromise: true,
@@ -556,7 +638,14 @@ const contrastAt = async (send, w, h) => {
     // `status` says what was measured, `pass` is the verdict; only a measured
     // pair with a finite ratio can ever pass.
     const pass = finding.status === 'ok' && Number.isFinite(finding.ratio) && finding.ratio >= finding.threshold
-    entries.push({ width: w, ...finding, pass })
+    // scrolledTo/textOnScreen are the row's receipt: they show which position
+    // produced the numbers, so two rows with the same numbers can be told apart
+    // from two rows that measured the same state twice.
+    entries.push({
+      width: w, ...finding,
+      scrolledTo: state.scrolledTo, textOnScreen: state.textOnScreen,
+      pass,
+    })
   }
   return entries
 }
@@ -679,10 +768,7 @@ try {
       continue
     }
     const metrics = { width: w, height: h }
-    await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 })
-    const nav = await send('Page.navigate', { url })
-    if (nav.errorText) throw new Fail(`cannot load ${url}: ${nav.errorText}`, 1)
-    await sleep(3800) // fonts, images and the WebGL scene
+    await goto(send, url, w, h)
 
     const r = await send('Runtime.evaluate', {
       expression: cmd === 'signature'
