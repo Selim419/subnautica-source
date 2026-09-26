@@ -14,7 +14,7 @@
    --display alongside the properties below. All six are gone: the five legacy
    names are replaced by the layer-1 and layer-3 tokens, and --surface was a
    byte-identical duplicate of the one in tokens.css. */
-:root{font-family:var(--font-body);color:var(--ink);background:var(--abyss);font-synthesis:none}
+:root{font-family:var(--font-body);color:var(--ink);background:var(--abyss);font-synthesis:none;--dive-length:900vh}
 
 
 *{box-sizing:border-box}

@@ -1,10 +1,87 @@
-/* The dive section: biome tabs, the zone card, manifesto, closing CTA.
-   Owns: .dive, .section-heading, .dive-list, .dive-tab, .dive-card and its
-   parts, .scan-ring, .card-link, .manifesto, .underlined, .final-cta and
-   .final-content. Also owns the shared .section-heading h2 rule, which the
-   wiki's .database-heading h2 deliberately overrides. */
+/* The dive spine: the fixed ocean scene's CSS fallback gradient, the six
+   biome sections, the depth gauge, and what survives from the old tab/card
+   dive section — the manifesto, the closing CTA, and the shared
+   .section-heading rule (which the wiki's .database-heading h2 deliberately
+   overrides). .dive, .dive-layout, .dive-list, .dive-tab, .dive-card and
+   their parts are gone: DiveScroll renders the six biome sections itself now. */
 
-.dive{padding:var(--space-10) max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,color-mix(in srgb,var(--water) 19%,transparent),transparent 35%),var(--deep)}
+/* Six gradient stops standing in for the plan's literal hex stops (a bright
+   near-surface cyan down to near-black abyss): every stop here is a token or a
+   color-mix() of two tokens, per the zero-hex-outside-tokens.css rule this
+   file is under. --bathyal/--water/--deep/--abyss are the existing depth ramp;
+   the fifth stop is a color-mix() between --deep and --abyss because the ramp
+   has no token that sits between them. */
+.dive-scroll { position: relative; z-index: 1;
+  background: linear-gradient(180deg,
+    var(--bathyal) 0%,
+    var(--water) 14%,
+    var(--deep) 34%,
+    color-mix(in srgb, var(--deep) 40%, var(--abyss)) 58%,
+    var(--abyss) 82%,
+    var(--abyss) 100%); }
+
+.dive-scroll > .hero { position: relative; z-index: 1; }
+
+.dive-section { position: relative; z-index: 1; min-height: 133.333vh;
+  display: flex; align-items: center; padding: var(--space-8) var(--space-6); }
+
+.dive-scrim { position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(100deg,
+    color-mix(in srgb, var(--abyss) 88%, transparent) 0%,
+    color-mix(in srgb, var(--abyss) 62%, transparent) 34%,
+    color-mix(in srgb, var(--abyss) 0%, transparent) 72%); }
+
+.dive-section-inner { position: relative; z-index: 1;
+  max-width: min(58ch, 62%); min-width: 0; }
+
+.dive-num { font-family: var(--font-mono); font-size: var(--text-small);
+  letter-spacing: var(--tracking-wide); color: var(--zone-accent); margin: 0 0 var(--space-2); }
+
+.dive-title { font-family: var(--font-display); font-weight: 700;
+  font-size: var(--text-display-safe); line-height: var(--leading-heading);
+  letter-spacing: var(--tracking-display); margin: 0 0 var(--space-3);
+  color: var(--ink); overflow-wrap: anywhere; }
+
+.dive-line { font-family: var(--font-display); font-size: var(--text-lead);
+  color: var(--zone-accent); margin: 0 0 var(--space-4); }
+
+.dive-body { font-family: var(--font-body); font-size: var(--text-body);
+  line-height: var(--leading-body); color: var(--ink-muted);
+  margin: 0 0 var(--space-5); max-width: 52ch; }
+
+.dive-meta { display: flex; gap: var(--space-5); flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: var(--text-micro);
+  letter-spacing: var(--tracking-wide); color: var(--ink-muted);
+  margin-bottom: var(--space-5); }
+
+.depth-gauge { position: fixed; left: var(--space-4); top: 50%; transform: translateY(-50%);
+  z-index: 2; display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-3); pointer-events: none; }
+
+.gauge-depth { font-family: var(--font-mono); font-size: var(--text-micro);
+  letter-spacing: var(--tracking-wide); color: var(--ink-muted); writing-mode: vertical-rl; }
+.gauge-depth b { color: var(--zone-accent); font-weight: 500; }
+
+.gauge-rail { width: 1px; height: 34vh; background: var(--hairline-firm); position: relative; overflow: hidden; }
+.gauge-rail i { position: absolute; inset: 0; background: var(--zone-accent);
+  transform-origin: top; transform: scaleY(0); }
+
+.gauge-index { font-family: var(--font-mono); font-size: var(--text-micro);
+  letter-spacing: var(--tracking-wide); color: var(--ink-muted); writing-mode: vertical-rl; }
+
+@media (min-width: 769px) and (max-width: 850px) { .depth-gauge { display: none; } }
+@media (max-width: 768px) {
+  .dive-section { min-height: 120vh; padding: var(--space-6) var(--space-4); }
+  .dive-section-inner { max-width: 100%; }
+  .dive-scrim { background: linear-gradient(180deg,
+    color-mix(in srgb, var(--abyss) 90%, transparent) 0%,
+    color-mix(in srgb, var(--abyss) 55%, transparent) 60%,
+    color-mix(in srgb, var(--abyss) 15%, transparent) 100%); }
+  .depth-gauge { display: none; }
+}
+@media (max-width: 600px) {
+  .dive-section { min-height: 108vh; }
+}
 
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:40px;margin-bottom:49px}
 
@@ -21,109 +98,9 @@
 
 .section-heading p{max-width:345px;margin:0;color:var(--ink-muted);line-height:var(--leading-body)}
 
-/* A bare `1fr` track floors at its content's min-content width, so a long word
-   or a wide image in the card cell widens the track past the viewport instead of
-   being constrained by it. The first track keeps an explicit 280px floor
-   because the tab list is sized against it; its max is already an fr, so it
-   never falls back to min-content. Below 850 the layout is one column and that
-   column is `minmax(0,1fr)`, which is where the card has to stop setting the
-   page's width. */
-.dive-layout{display:grid;grid-template-columns:minmax(280px,.63fr) minmax(0,1.37fr);gap:18px}
-
-.dive-list{display:flex;flex-direction:column;gap:var(--space-3)}
-
-/* Tab, card and active tab are three different planes of one ramp, and the
-   order is by intent rather than by which literal happened to be nearest.
-
-   The tab is a small control sitting on the section's own plane, so it takes
-   --deep, the plane .dive is already on. The card is a panel raised above the
-   section, so it stays on --surface. The active tab keeps --surface-2, two
-   steps up, so resting tab < card < active tab is monotonic and no two of the
-   three share a token.
-
-   The fill alone could not do this work and it is worth saying why. Task 6 put
-   both the tab and the card on --surface, which collapsed two distinct dark
-   blue-greys the previous stylesheet carried for them into one flat field. But
-   those two were only 1.06:1 apart in luminance, and the dark end of this ramp
-   is compressed: --deep to --surface is 1.08:1 and --surface to --surface-2 is
-   1.32:1. No fill inside the ramp separates these by more than about a percent,
-   so the edge has to carry the control. At --hairline's 0.14 alpha the border
-   composites to 1.52:1 against the --deep the tab now shares with its section,
-   which is too faint to be seen as an edge at all; the resting tab therefore
-   steps up to --hairline-firm, 2.15:1. The card keeps --hairline, because the
-   photograph inside it is what draws that edge. */
-
-/* The label track is minmax(0,1fr) for the same reason as the layout track: the
-   zone name is the widest thing in the tab and a bare 1fr would let it set the
-   track. It costs nothing here because the name wraps at its space. */
-.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px minmax(0,1fr) auto 20px;align-items:center;gap:18px;background:var(--deep);border:1px solid var(--hairline-firm);padding:var(--space-5);text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
-
-.dive-tab:hover{transform:translateX(4px)}
-
-.dive-tab.active{background:var(--surface-2);border-color:var(--glow)}
-
-/* The zone number, mono at 500: on this element the figure is the whole content,
-   so it is the primary kind of readout rather than a supporting label. Its size
-   stays a literal at .72rem, which is between --text-micro and --text-small and
-   equals neither. */
-.dive-num{align-self:start;color:var(--glow);font-size:.72rem;letter-spacing:.14em;font-family:var(--font-mono);font-weight:500}
-
-.dive-tab b{display:block;font-size:1.45rem;letter-spacing:-.04em}
-
-.dive-tab small{display:block;margin-top:7px;color:var(--ink-muted);font-size:var(--text-micro);letter-spacing:.13em}
-
-/* 000—080 M. The depth range is the entire content of this cell, so mono at
-   500. The em dash (U+2014) is inside the Selim Mono latin subset. */
-.tab-depth{font-size:.68rem;color:var(--ink-muted);white-space:nowrap;font-family:var(--font-mono);font-weight:500}
-
-.dive-tab-arrow{font-size:1.23rem;color:var(--glow)}
-
-/* The raised plane: one step above the section and above the tab, and the only
-   one of the three that carries an image. Its own fill is a fallback for a
-   failed image load, which is why the flat --surface it had in Task 6 read as
-   the same field as the tab rather than as a panel. */
-.dive-card{position:relative;min-height:484px;overflow:hidden;border:1px solid var(--hairline);background:var(--surface);isolation:isolate}
-
-.dive-image{position:absolute;inset:0;background-size:cover;background-position:center;z-index:-3}
-
-.dive-overlay{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--abyss) 45%,transparent),color-mix(in srgb,var(--abyss) 10%,transparent) 35%,color-mix(in srgb,var(--abyss) 94%,transparent));z-index:-2}
-
-.scan-ring{position:absolute;right:19%;top:27%;width:100px;height:100px;border:1px solid var(--zone-accent);border-radius:50%;box-shadow:0 0 50px var(--zone-accent);z-index:-1;pointer-events:none}
-
-/* SEKTÖR 01 / DERİNLİK and O₂ / STABİL · 01 / 03. Both rows are stat readouts
-   and both are mono, but at 400 rather than 500: they sit in the image's
-   gradient and support the card, and the depth they repeat is already at 500 on
-   .tab-depth. The subscript two (U+2082) in O₂ is inside the Selim Mono latin
-   subset, which is why this face is used for the row at all. */
-.dive-card-head,.dive-card-foot{position:absolute;left:30px;right:30px;display:flex;justify-content:space-between;gap:15px;align-items:center;font-size:var(--text-micro);letter-spacing:.15em;font-weight:400;color:var(--ink-muted);font-family:var(--font-mono)}
-
-.dive-card-head{top:28px}
-
-.dive-card-body{position:absolute;left:35px;right:35px;bottom:83px}
-
-.dive-card-body .section-kicker{color:var(--zone-accent)}
-
-.dive-card-body h3{font-family:var(--font-display);font-size:clamp(2.7rem,4.6vw,5rem);line-height:.94;font-weight:900;max-width:580px;margin:14px 0;overflow-wrap:break-word}
-
-/* The one place on the site where a size, a leading and a family genuinely
-   belong to a single sentence, so this is the one place the `font` shorthand is
-   the right tool. It carries the leading INSIDE the shorthand, because the
-   shorthand resets line-height to `normal` unless a `/leading` is given — a
-   `font:` without it would silently undo --leading-prose. It also resets
-   font-weight and font-family to their initial values, so both are named here
-   explicitly; the computed result is identical to what the three longhands
-   produced, which is what the geometry signature is for. */
-.dive-card-body p{max-width:470px;font:400 var(--text-body)/var(--leading-prose) var(--font-body);color:var(--ink);margin:0 0 21px}
-
 .card-link,.underlined{background:transparent;border:0;border-bottom:1px solid currentColor;padding:9px 0;color:var(--zone-accent);font-size:.75rem;letter-spacing:.15em;font-weight:900}
 
 .card-link span,.underlined span{margin-left:26px}
-
-.dive-card-foot{bottom:25px;color:var(--ink-muted)}
-
-.dive-card-foot div{width:45%;height:3px;background:var(--hairline-firm)}
-
-.dive-card-foot div i{display:block;height:100%;background:var(--zone-accent);transition:width .55s ease}
 
 /* The manifesto's inverted panel. --surface-invert/--ink-invert/--accent-invert
    are the three roles it needs; the link is --accent-invert pulled toward the
@@ -198,22 +175,19 @@
 
 .final-content p{font-size:var(--text-body);line-height:1.6;color:var(--ink);max-width:380px;margin:0 0 28px}
 
-@media(max-width:1160px){.manifesto-grid{grid-template-columns:minmax(0,1fr) minmax(0,.75fr);gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px minmax(0,1fr) 20px}}
+@media(max-width:1160px){.manifesto-grid{grid-template-columns:minmax(0,1fr) minmax(0,.75fr);gap:40px}}
 
-@media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:minmax(0,1fr)}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px minmax(0,1fr)}.dive-tab-arrow{display:none}.dive-tab b{font-size:var(--text-body)}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
+@media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
 
 /* The small-tablet rung (601-768) from the ladder in tokens.css. Nothing here
-   overflows — 768 measured clean on both routes, with the tab row, the card,
-   the two-column wiki grid and the footer all inside the viewport — so this
-   block is the vertical rhythm of the band and nothing more. The wide-screen
-   values are too generous at 768: a 145px run-out below the dive card and 107px
-   of air above the manifesto heading, both against a 700px measure, and neither
-   earns its space. Nothing here can move a line of text, so the wrapped-click
-   count at 768 is untouched. */
-@media(min-width:601px) and (max-width:768px){.dive{padding-bottom:110px}.manifesto{padding:88px 34px 100px}}
+   overflows — 768 measured clean on both routes, with the two-column wiki grid
+   and the footer all inside the viewport — so this block is the vertical
+   rhythm of the band and nothing more. */
+@media(min-width:601px) and (max-width:768px){.manifesto{padding:88px 34px 100px}}
 
 /* A decision, not a side effect of the typeface swap. 3.4rem -> 3.1rem, and
-   only in this block. `KATMANLARI` inside #dive-title is one unbreakable
+   only in this block. `KATMANLARI` inside a `.section-heading h2` (the wiki's
+   database heading and any surviving section heading) is one unbreakable
    Turkish word: 302.4px wide in Selim Sans Condensed at 3.4rem, against a
    282px measure at 320px, so 1.4px of it landed outside the viewport. The face
    this replaced measured the same word at 259.8px and it fit. A wider
@@ -224,7 +198,7 @@
    word whole and the page inside its viewport, so that is what was taken. The
    600px block is already where this heading is resized to fit a narrow
    viewport; nothing above 600px moves. */
-@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px minmax(0,1fr) 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:var(--text-body)}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(2.9rem,14vw,6.5rem)}}
+@media(max-width:600px){.section-heading h2{font-size:3.1rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:var(--text-body)}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(2.9rem,14vw,6.5rem)}}
 
 .ocean-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
 .ocean-canvas canvas { display: block; width: 100%; height: 100%; }

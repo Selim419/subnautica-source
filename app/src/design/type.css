@@ -286,6 +286,12 @@
   --text-body:    1rem;                      /* 16px — running text          */
   --text-lead:    1.1875rem;                 /* 19px — an introduction       */
 
+  /* --text-display was removed in a27e6d1 as an unbacked claim: nothing on the
+     site was set from it. Task 7's .dive-title is now its first real consumer,
+     so a defensive display step is back, under its own name so it is not
+     mistaken for a resurrection of the old one. */
+  --text-display-safe: clamp(2.75rem, 7.4vw, 6.5rem);
+
   /* Leading, as a unitless ratio so it survives a size change. Two settings for
      type that is set large and tight, one for running text, and one looser step
      for the lead paragraph, which is roughly half a measure wide and reads as an
