@@ -104,11 +104,12 @@
 }
 
 /* --- Layer 3b: the breakpoint ladder --------------------------------------
-   A custom property cannot be used inside an @media condition, so these four
-   values are documentary: they are the single place the ladder is written
-   down, and every @media in chrome.css, hero.css, dive.css and wiki.css has to
-   match one of them literally. They exist so the next person adding a rule
-   picks a rung off this list instead of inventing 780px.
+   A custom property cannot be used inside an @media condition — a rule like
+   `@media (max-width: var(--bp-compact))` is an invalid media query that the
+   browser silently drops, and every declaration inside it stops applying with
+   no error anywhere. So there are no breakpoint tokens here; the ladder is
+   written down in prose, and every @media in layout.css, chrome.css, hero.css,
+   dive.css and wiki.css spells its width out literally.
 
    The ladder is descending (max-width), so a later block wins at equal
    specificity. That is why the small-tablet rung is a BAND and not a plain
@@ -126,9 +127,3 @@
 
    All four mandatory widths are covered and 768 is the only one that needed a
    rung of its own; the measurements behind that are in task-7-report.md. */
-:root {
-  --bp-compact: 600px;
-  --bp-tablet: 768px;
-  --bp-landscape: 850px;
-  --bp-narrow: 1160px;
-}

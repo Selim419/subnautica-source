@@ -261,27 +261,30 @@
    a leading and the body family all genuinely belong to one sentence. */
 
 :root {
-  /* Sizes. The bottom four are for text set at a size, and the top one is the
-     display step.
+  /* Sizes. The four below are for text set at a size. There is deliberately no
+     display size token, and the reason is structural rather than an oversight:
+     the site's display elements each carry their own slope, and they do not
+     agree. .hero h1 clamps at 10.1vw, .final-content h2 at 10vw, .wiki-hero h1
+     and .manifesto h2 at 9vw, .section-heading h2 at 7.2vw. A single
+     `clamp(2.75rem, 8.5vw, 10.5rem)` cannot stand in for five different
+     slopes without changing what they render, so routing them through one
+     token would silently resize the largest type on the site.
 
-     --text-display was capped at 7rem, which was a claim about the design that
-     the site contradicted: the display type actually reaches 10.5rem (.hero h1
-     at >=1160px, .manifesto h2 and .final-content h2 at 10rem, .wiki-hero h1 at
-     9rem). A scale whose top step cannot express the largest type on the site
-     is not a display scale. The cap is now 10.5rem, so the step spans the real
-     range — the site's condensed headings run from 2.1rem (.wiki-card h3) to
-     10.5rem — and the 8.5vw midpoint is the slope the site's own display
-     clamps cluster around (.hero h1 is 10.1vw, .final-content h2 10vw,
-     .wiki-hero h1 and .manifesto h2 9vw, .section-heading h2 7.2vw).
+     An earlier draft did carry such a token, capped at 7rem — a claim the site
+     contradicted, since display type reaches 10.5rem (.hero h1 at >=1160px,
+     .manifesto h2 and .final-content h2 at 10rem, .wiki-hero h1 at 9rem).
+     Widening the cap to 10.5rem fixed the range but not the consumer problem:
+     a step with no element using it is the unbacked claim this ramp exists to
+     stop carrying, the same objection that took --text-h3 out. The display
+     range is therefore recorded in prose here instead of as a declaration.
 
-     --text-h3 is gone. Nothing on the site is set at a size it equals, and a
-     step that names a role no element fills is the unbacked claim this ramp
-     exists to stop carrying. */
+     --text-h3 is gone for the same reason: nothing on the site is set at a
+     size it equals. The condensed headings run from 2.1rem (.wiki-card h3) to
+     10.5rem. */
   --text-micro:   0.6875rem;                 /* 11px — uppercase micro labels */
   --text-small:   0.8125rem;                 /* 13px — small UI copy         */
   --text-body:    1rem;                      /* 16px — running text          */
   --text-lead:    1.1875rem;                 /* 19px — an introduction       */
-  --text-display: clamp(2.75rem, 8.5vw, 10.5rem);
 
   /* Leading, as a unitless ratio so it survives a size change. Two settings for
      type that is set large and tight, one for running text, and one looser step
