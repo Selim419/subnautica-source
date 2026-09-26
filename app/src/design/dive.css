@@ -4,7 +4,7 @@
    .final-content. Also owns the shared .section-heading h2 rule, which the
    wiki's .database-heading h2 deliberately overrides. */
 
-.dive{padding:128px max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,color-mix(in srgb,var(--water) 19%,transparent),transparent 35%),var(--deep)}
+.dive{padding:var(--space-10) max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,color-mix(in srgb,var(--water) 19%,transparent),transparent 35%),var(--deep)}
 
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:40px;margin-bottom:49px}
 
@@ -16,9 +16,30 @@
 
 .dive-layout{display:grid;grid-template-columns:minmax(280px,.63fr) minmax(0,1.37fr);gap:18px}
 
-.dive-list{display:flex;flex-direction:column;gap:12px}
+.dive-list{display:flex;flex-direction:column;gap:var(--space-3)}
 
-.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px 1fr auto 20px;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--hairline);padding:24px;text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
+/* Tab, card and active tab are three different planes of one ramp, and the
+   order is by intent rather than by which literal happened to be nearest.
+
+   The tab is a small control sitting on the section's own plane, so it takes
+   --deep, the plane .dive is already on. The card is a panel raised above the
+   section, so it stays on --surface. The active tab keeps --surface-2, two
+   steps up, so resting tab < card < active tab is monotonic and no two of the
+   three share a token.
+
+   The fill alone could not do this work and it is worth saying why. Task 6 put
+   both the tab and the card on --surface, which collapsed two distinct dark
+   blue-greys the previous stylesheet carried for them into one flat field. But
+   those two were only 1.06:1 apart in luminance, and the dark end of this ramp
+   is compressed: --deep to --surface is 1.08:1 and --surface to --surface-2 is
+   1.32:1. No fill inside the ramp separates these by more than about a percent,
+   so the edge has to carry the control. At --hairline's 0.14 alpha the border
+   composites to 1.52:1 against the --deep the tab now shares with its section,
+   which is too faint to be seen as an edge at all; the resting tab therefore
+   steps up to --hairline-firm, 2.15:1. The card keeps --hairline, because the
+   photograph inside it is what draws that edge. */
+
+.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px 1fr auto 20px;align-items:center;gap:18px;background:var(--deep);border:1px solid var(--hairline-firm);padding:var(--space-5);text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
 
 .dive-tab:hover{transform:translateX(4px)}
 
@@ -34,6 +55,10 @@
 
 .dive-tab-arrow{font-size:1.23rem;color:var(--glow)}
 
+/* The raised plane: one step above the section and above the tab, and the only
+   one of the three that carries an image. Its own fill is a fallback for a
+   failed image load, which is why the flat --surface it had in Task 6 read as
+   the same field as the tab rather than as a panel. */
 .dive-card{position:relative;min-height:484px;overflow:hidden;border:1px solid var(--hairline);background:var(--surface);isolation:isolate}
 
 .dive-image{position:absolute;inset:0;background-size:cover;background-position:center;z-index:-3}
@@ -100,17 +125,22 @@
 
 .final-content h2 em{font-style:normal;color:var(--glow)}
 
-.final-content p{font-size:1rem;line-height:1.6;color:var(--ink);max-width:380px;margin:0 0 28px}
+.final-content p{font-size:var(--text-body);line-height:1.6;color:var(--ink);max-width:380px;margin:0 0 28px}
 
 @media(max-width:1160px){.manifesto-grid{grid-template-columns:1fr .75fr;gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px 1fr 20px}}
 
 @media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:1fr}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px 1fr}.dive-tab-arrow{display:none}.dive-tab b{font-size:1rem}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
 
-/* 3.4rem -> 3.1rem, and only here. `KATMANLARI` inside #dive-title is one
-   unbreakable word: 302.4px wide in Selim Sans Condensed at 3.4rem, against a
-   282px measure at 320px. The display face this replaced measured it at
-   259.8px and it fit. Scaling to 3.1rem puts the word at 275.7px, so the right
-   edge lands at 294.7 instead of 321.4 and the page stops overflowing by 1px.
-   The 600px block is already where this heading is resized to fit a narrow
+/* A decision, not a side effect of the typeface swap. 3.4rem -> 3.1rem, and
+   only in this block. `KATMANLARI` inside #dive-title is one unbreakable
+   Turkish word: 302.4px wide in Selim Sans Condensed at 3.4rem, against a
+   282px measure at 320px, so 1.4px of it landed outside the viewport. The face
+   this replaced measured the same word at 259.8px and it fit. A wider
+   typeface has to be allowed to change something, and the two alternatives
+   were worse: `overflow-wrap: break-word` breaks the word mid-glyph at 49.6px,
+   and re-tuning letter-spacing would undo the display tracking Task 4 fixed. A
+   7% size reduction at one breakpoint is the smallest change that keeps the
+   word whole and the page inside its viewport, so that is what was taken. The
+   600px block is already where this heading is resized to fit a narrow
    viewport; nothing above 600px moves. */
-@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:1rem}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}
+@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:var(--text-body)}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}

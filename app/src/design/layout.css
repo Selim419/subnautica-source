@@ -47,7 +47,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(-
 
 .section-kicker{color:var(--glow);font-size:.75rem;letter-spacing:.19em;font-weight:800;text-transform:uppercase}
 
-.section-kicker:before{content:'';display:inline-block;width:24px;height:1px;background:currentColor;vertical-align:middle;margin-right:12px}
+.section-kicker:before{content:'';display:inline-block;width:24px;height:1px;background:currentColor;vertical-align:middle;margin-right:var(--space-3)}
 
 .signal-dot,.live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--glow);box-shadow:0 0 15px var(--glow)}
 

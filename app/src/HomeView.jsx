@@ -6,10 +6,19 @@ const OceanScene = React.lazy(() => import('./OceanScene.jsx'))
 const asset = (name) => `${import.meta.env.BASE_URL}${name}`
 const reduced = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+// The three depth zones. `accent` is a token reference, not a colour: it is set
+// inline as --zone-accent on .dive-card, so it resolves against the cascade the
+// same way any other var() in dive.css does. Zones 01 and 02 were re-deriving
+// hues the palette already owns — the surface zone sat on top of --glow and the
+// twilight zone on top of --kelp — so they point straight at them. Zone 03's
+// pale blue was the one genuinely new hue, and it is --bathyal in layer 1 now.
+// The three stay clearly distinct: a mint, a yellow-green and a cold blue,
+// which is what makes the scan ring, the kicker, the link and the depth bar
+// readable as a depth indicator rather than as three tints of one.
 const diveZones = [
-  { number: '01', name: 'Sığ Resifler', original: 'SAFE SHALLOWS', depth: '000—080 M', index: 'YÜZEY', line: 'Işığın her şeyi gösterdiği yer.', description: 'Kurtarma kapsülünden ilk kez ayrıl. Mercanların arasında yönünü bul ve okyanusun sesine alış.', image: 'ocean-hero.webp', accent: '#71f4e5', wiki: 'safe-shallows' },
-  { number: '02', name: 'Yosun Ormanı', original: 'KELP FOREST', depth: '080—200 M', index: 'ALACAKARANLIK', line: 'Görüş azalır. Merak artar.', description: 'Creepvine gövdeleri akıntıyla birlikte hareket eder. Her gölge, yeni bir yaşam izi olabilir.', image: 'kelp-forest.webp', accent: '#c6eb8f', wiki: 'kelp-forest' },
-  { number: '03', name: 'Kayıp Nehir', original: 'LOST RIVER', depth: '525—1065 M', index: 'DERİNLİK', line: 'Bazı yollar yalnızca aşağı iner.', description: 'Fosillerin ve tuzlu akıntıların içinden geç. Burada ışığın yerini bilinmeyen alır.', image: 'lost-river.webp', accent: '#91d8e8', wiki: 'lost-river' },
+  { number: '01', name: 'Sığ Resifler', original: 'SAFE SHALLOWS', depth: '000—080 M', index: 'YÜZEY', line: 'Işığın her şeyi gösterdiği yer.', description: 'Kurtarma kapsülünden ilk kez ayrıl. Mercanların arasında yönünü bul ve okyanusun sesine alış.', image: 'ocean-hero.webp', accent: 'var(--glow)', wiki: 'safe-shallows' },
+  { number: '02', name: 'Yosun Ormanı', original: 'KELP FOREST', depth: '080—200 M', index: 'ALACAKARANLIK', line: 'Görüş azalır. Merak artar.', description: 'Creepvine gövdeleri akıntıyla birlikte hareket eder. Her gölge, yeni bir yaşam izi olabilir.', image: 'kelp-forest.webp', accent: 'var(--kelp)', wiki: 'kelp-forest' },
+  { number: '03', name: 'Kayıp Nehir', original: 'LOST RIVER', depth: '525—1065 M', index: 'DERİNLİK', line: 'Bazı yollar yalnızca aşağı iner.', description: 'Fosillerin ve tuzlu akıntıların içinden geç. Burada ışığın yerini bilinmeyen alır.', image: 'lost-river.webp', accent: 'var(--bathyal)', wiki: 'lost-river' },
 ]
 
 function Hero({ onWiki }) {

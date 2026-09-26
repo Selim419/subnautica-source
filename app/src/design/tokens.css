@@ -8,10 +8,23 @@
   --abyss:  #01080c;
   --deep:   #04202a;
   --water:  #0d5f74;
+  /* Carries zone 02's accent (the twilight band) and is named for the biome
+     moment the Phase 2 dive spine paints, not for the swatch. */
   --kelp:   #a9d96b;
   --glow:   #5fe0c8;
   --amber:  #ffb454;
+  /* RESERVED, with a named consumer: the coral biome moment. The Phase 2 dive
+     spine needs a warm hue that is neither --amber nor --glow, and
+     readTokens.js reads layer 1 wholesale for the shaders, so the value has to
+     exist here before the spine does. Unused by the five component files. */
   --coral:  #ff7a59;
+  /* The one hue the palette did not own. Zones 01 and 02 were re-deriving
+     --glow and --kelp in JSX and now point straight at them; zone 03's pale
+     blue is genuinely new, so it earns a token under the rule above — it is
+     the second component to need a cool depth accent, and it is the only
+     non-mint, non-kelp accent on the site. Named for the depth band it
+     signals, which is what --zone-accent is for. */
+  --bathyal: #91d8e8;
 
   --ink:          #f7fffd;
   --ink-muted:    rgba(247, 255, 253, 0.62);
@@ -29,18 +42,26 @@
   --hairline-firm:rgba(247, 255, 253, 0.24);
   --scrim:        rgba(1, 11, 17, 0.77);
 
-  /* Four additions, and the rule for adding a fifth: a token earns its place
-     only when the role it names is used by more than one component. The surface
-     ramp above is four steps because the stylesheet has four depths of
-     enclosure; the accent set is seven because seven hues genuinely recur.
-     Anything that appears once and is a shade of a hue already here is a
-     color-mix() at the point of use, not a token. */
+  /* Five additions since the first draft, and the rule for a sixth: a token
+     earns its place only when the role it names is used by more than one
+     component, or when no existing hue plays the role at all. The surface ramp
+     above is four steps because the stylesheet has four depths of enclosure;
+     the accent set is six because six hues genuinely recur. Anything that
+     appears once and is a shade of a hue already here is a color-mix() at the
+     point of use, not a token. */
 
   /* The manifesto's pale mint panel — the one light surface in the site, and
      the reason the ink ramp needs a second set. */
   --surface-invert: #dcefeb;
   --ink-invert:     #08232b;
-  --accent-invert:  #197b80;
+  /* Was #197b80, which measures 4.2:1 on --surface-invert: a fail against AA's
+     4.5:1 floor for normal text. The kicker that carries this is 0.7rem
+     uppercase, so the 3:1 large-text allowance does not apply to it. #177075
+     holds the 183-degree teal hue and measures 4.87:1 — the smallest darkening
+     that clears the floor with margin. The kicker and the 10rem `em` share this
+     one token, so the display `em` darkens with it; that is the intended
+     unification, not a side effect. */
+  --accent-invert:  #177075;
 
   /* A teal edge: the record panel's leading border and the spoiler switch's
      off-state track. Distinct from --hairline, which is white at low alpha,
@@ -56,19 +77,21 @@
 [data-regime='deep']     { --water: #07303f; --ink: #a9c6d2; --glow: #5fb6cc; }
 [data-regime='biolum']   { --water: #04101c; --ink: #e2c3ff; --glow: #ffb454; }
 
-/* Layer 3 — measure. 4px base scale; six type steps; four durations. */
+/* Layer 3 — measure.
+
+   This block used to declare a 10-step spacing scale, six type steps and four
+   motion durations. Measured against the five component files, 8 of the 10
+   spacing steps and 1 of the 6 type steps are now used; nothing else was ever
+   reachable. The deleted steps are listed in task-6b-report.md with the counts
+   that justified removing each one. What survives is only what a rule actually
+   reaches for, because a step nothing uses is a claim the stylesheet does not
+   back. The 4px base is unchanged: every value below was already a multiple
+   of 4, and the substitutions are exact, so no computed length moved. */
 :root {
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
-  --space-5: 24px; --space-6: 32px; --space-7: 48px; --space-8: 64px;
-  --space-9: 96px; --space-10: 128px;
+  --space-5: 24px; --space-6: 32px;
+  --space-8: 64px;
+  --space-10: 128px;
 
-  --text-micro: 0.6875rem;
-  --text-small: 0.8125rem;
   --text-body:  1rem;
-  --text-lead:  1.1875rem;
-  --text-h3:    clamp(1.5rem, 2.4vw, 2rem);
-  --text-display: clamp(2.75rem, 8.5vw, 7rem);
-
-  --dur-1: 120ms; --dur-2: 240ms; --dur-3: 420ms; --dur-4: 800ms;
-  --ease-out: cubic-bezier(0.2, 0.75, 0.2, 1);
 }

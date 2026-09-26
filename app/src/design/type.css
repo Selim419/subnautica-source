@@ -199,41 +199,42 @@
 
 :root {
   --font-display: 'Selim Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+  /* RESERVED, with a named consumer: Plan 2B's HUD — the coordinate, depth and
+     stat readouts the dive spine pins over the canvas. No rule in the five
+     component files sets it today, which is why the four Selim Mono cuts ship
+     and none of them is reached for. The plan's out-of-scope note puts the
+     DepthGauge in Plan 2B, so the token stays rather than going with the face. */
   --font-mono: 'Selim Mono', ui-monospace, 'Consolas', monospace;
   --font-body: 'Selim Sans', system-ui, sans-serif;
 }
 
-/* --- Measure -----------------------------------------------------------
-   A hard cap on line length. 68ch for running copy, 34ch for a lead
-   paragraph, which is roughly half the measure and reads as an introduction
-   rather than as a second body block. */
+/* --- Measure and the type scale: both removed, and why --------------------
+   This file used to end with --measure-body/--measure-lead and seven --type-*
+   steps, each a "font-shorthand token stream" of size, family, leading and
+   tracking. Nothing consumed any of them, and the measurement says why they
+   could not have:
 
-:root {
-  --measure-body: 68ch;
-  --measure-lead: 34ch;
-}
+   1. They do not work as documented. The `font` shorthand takes no
+      letter-spacing and no bare line-height after the family, so
+      `font: var(--type-small)` is not a smaller heading — it is an invalid
+      declaration that the browser drops, leaving the element on its inherited
+      type. Verified in Chrome, not inferred: a probe rule carrying the exact
+      token shape computed to font-size 16px, line-height normal and
+      letter-spacing normal, while a `size/leading family` control on the same
+      element computed to 44px. A token that silently does nothing is worse
+      than no token.
 
-/* --- The type scale ----------------------------------------------------
-   Each step pairs a size from tokens.css with the family that carries it, a
-   line height, and a tracking value. Headings run tight and negative because
-   they are set in the condensed cut; the small steps run wide and positive
-   because they are uppercase labels. Sizes stay in tokens.css — this file
-   only decides which family, leading and tracking each step uses.
+   2. Nothing matched anyway. The five component files declare 35 distinct
+      font-size values and 8 max-widths. Exactly one, `1rem`, equals a scale
+      step, and it is applied at its four sites as --text-body. No site matches
+      a whole step, so there was no unambiguous substitution to make.
 
-   Each --type-* token is a font-shorthand token stream: size, family, leading,
-   tracking. It is meant to be substituted whole, either as a shorthand
+   3. Retargeting the rest is out of scope by the plan's own words — "no
+      restyling of section rhythm, macrostructure or layout" — so the scale was
+      never going to find a consumer inside this plan.
 
-     .record-lead { font: var(--type-lead); max-width: var(--measure-lead); }
-
-   or longhand by token, since the individual parts are addressable through
-   var() on the --text-* and --font-* tokens the step is built from. */
-
-:root {
-  --type-micro:   var(--text-micro)   var(--font-body) 1.4  0.18em;
-  --type-small:   var(--text-small)   var(--font-body) 1.45 0.12em;
-  --type-body:    var(--text-body)    var(--font-body) 1.65 0;
-  --type-lead:    var(--text-lead)    var(--font-body) 1.55 0;
-  --type-h3:      var(--text-h3)      var(--font-display) 0.98 -0.015em;
-  --type-display: var(--text-display) var(--font-display) 0.86 -0.03em;
-  --type-mono:    var(--text-small)   var(--font-mono) 1.5  0.04em;
-}
+   The sizes these steps were built from lived in tokens.css layer 3; only
+   --text-body survived there, for the same reason. If a future typography pass
+   wants a scale, it should be cut from the sizes the components actually use,
+   with the tracking left at each call site rather than folded into the step —
+   the tracking on these labels is not one value, it runs .07em to .19em. */

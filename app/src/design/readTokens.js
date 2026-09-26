@@ -4,7 +4,7 @@
 // from a [data-regime] attribute, and a canvas cannot read the cascade — the scene
 // reads these raw values and interpolates between them itself.
 const NAMES = [
-  'abyss', 'deep', 'water', 'kelp', 'glow', 'amber', 'coral',
+  'abyss', 'deep', 'water', 'kelp', 'glow', 'amber', 'coral', 'bathyal',
   'ink', 'ink-muted', 'ink-faint', 'surface', 'surface-2',
   'hairline', 'hairline-firm', 'scrim',
   'surface-invert', 'ink-invert', 'accent-invert', 'edge',
