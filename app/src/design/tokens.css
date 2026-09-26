@@ -1,5 +1,9 @@
 /* Layer 1 — raw palette. The only layer read by readTokens.js, because the scene
-   shaders need numeric colours and cannot read CSS cascade layers. */
+   shaders need numeric colours and cannot read CSS cascade layers.
+
+   The names are roles, not values. Every colour in the five component files is
+   one of these or a color-mix() of two of them, so a literal appearing in a
+   component is a bug, not a decision. */
 :root {
   --abyss:  #01080c;
   --deep:   #04202a;
@@ -11,12 +15,37 @@
 
   --ink:          #f7fffd;
   --ink-muted:    rgba(247, 255, 253, 0.62);
+  /* No component consumes --ink-faint yet, and that is a finding rather than an
+     oversight. The stylesheet it replaced held 28 near-identical text values and
+     the dimmest of them was still around 7:1, so nothing qualified as a third
+     tier: every secondary label migrated to --ink-muted (6.7:1 on --surface,
+     7.7:1 on --abyss). At 0.38 this token measures 3.4:1, which is AA-large
+     only, and every candidate for it is 0.65-0.72rem. It stays because the
+     shaders read layer 1 wholesale and may want a decorative step. */
   --ink-faint:    rgba(247, 255, 253, 0.38);
   --surface:      #0b2730;
   --surface-2:    #123d45;
   --hairline:     rgba(247, 255, 253, 0.14);
   --hairline-firm:rgba(247, 255, 253, 0.24);
   --scrim:        rgba(1, 11, 17, 0.77);
+
+  /* Four additions, and the rule for adding a fifth: a token earns its place
+     only when the role it names is used by more than one component. The surface
+     ramp above is four steps because the stylesheet has four depths of
+     enclosure; the accent set is seven because seven hues genuinely recur.
+     Anything that appears once and is a shade of a hue already here is a
+     color-mix() at the point of use, not a token. */
+
+  /* The manifesto's pale mint panel — the one light surface in the site, and
+     the reason the ink ramp needs a second set. */
+  --surface-invert: #dcefeb;
+  --ink-invert:     #08232b;
+  --accent-invert:  #197b80;
+
+  /* A teal edge: the record panel's leading border and the spoiler switch's
+     off-state track. Distinct from --hairline, which is white at low alpha,
+     because these read as a hue rather than as a division. */
+  --edge: #4e9ea1;
 }
 
 /* Layer 2 — per-regime semantics. Applied via [data-regime] on a wrapper, so the

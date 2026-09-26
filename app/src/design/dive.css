@@ -4,45 +4,45 @@
    .final-content. Also owns the shared .section-heading h2 rule, which the
    wiki's .database-heading h2 deliberately overrides. */
 
-.dive{padding:128px max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,rgba(21,89,97,.19),transparent 35%),#06141c}
+.dive{padding:128px max(34px,calc((100vw - 1380px)/2)) 145px;background:radial-gradient(circle at 83% 18%,color-mix(in srgb,var(--water) 19%,transparent),transparent 35%),var(--deep)}
 
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:40px;margin-bottom:49px}
 
-.section-heading h2,.database-heading h2{font-family:var(--display);font-size:clamp(3.5rem,7.2vw,7.5rem);line-height:.9;letter-spacing:-.02em;margin:21px 0 0;font-weight:900}
+.section-heading h2,.database-heading h2{font-family:var(--font-display);font-size:clamp(3.5rem,7.2vw,7.5rem);line-height:.9;letter-spacing:-.02em;margin:21px 0 0;font-weight:900}
 
-.section-heading h2 em{font-style:normal;color:var(--cyan)}
+.section-heading h2 em{font-style:normal;color:var(--glow)}
 
-.section-heading p{max-width:345px;margin:0;color:#a9c8c8;line-height:1.65}
+.section-heading p{max-width:345px;margin:0;color:var(--ink-muted);line-height:1.65}
 
 .dive-layout{display:grid;grid-template-columns:minmax(280px,.63fr) minmax(0,1.37fr);gap:18px}
 
 .dive-list{display:flex;flex-direction:column;gap:12px}
 
-.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px 1fr auto 20px;align-items:center;gap:18px;background:#0b2530;border:1px solid var(--line);padding:24px;text-align:left;color:#e7f5f5;transition:background .25s,border-color .25s,transform .25s}
+.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px 1fr auto 20px;align-items:center;gap:18px;background:var(--surface);border:1px solid var(--hairline);padding:24px;text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
 
 .dive-tab:hover{transform:translateX(4px)}
 
-.dive-tab.active{background:#123d45;border-color:var(--cyan)}
+.dive-tab.active{background:var(--surface-2);border-color:var(--glow)}
 
-.dive-num{align-self:start;color:var(--cyan);font-size:.72rem;letter-spacing:.14em}
+.dive-num{align-self:start;color:var(--glow);font-size:.72rem;letter-spacing:.14em}
 
 .dive-tab b{display:block;font-size:1.45rem;letter-spacing:-.04em}
 
-.dive-tab small{display:block;margin-top:7px;color:#9fc7c9;font-size:.67rem;letter-spacing:.13em}
+.dive-tab small{display:block;margin-top:7px;color:var(--ink-muted);font-size:.67rem;letter-spacing:.13em}
 
-.tab-depth{font-size:.68rem;color:#b7d5d6;white-space:nowrap}
+.tab-depth{font-size:.68rem;color:var(--ink-muted);white-space:nowrap}
 
-.dive-tab-arrow{font-size:1.23rem;color:var(--cyan)}
+.dive-tab-arrow{font-size:1.23rem;color:var(--glow)}
 
-.dive-card{position:relative;min-height:484px;overflow:hidden;border:1px solid var(--line);background:#092b34;isolation:isolate}
+.dive-card{position:relative;min-height:484px;overflow:hidden;border:1px solid var(--hairline);background:var(--surface);isolation:isolate}
 
 .dive-image{position:absolute;inset:0;background-size:cover;background-position:center;z-index:-3}
 
-.dive-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(3,16,23,.45),rgba(3,16,23,.1) 35%,rgba(3,18,25,.94));z-index:-2}
+.dive-overlay{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--abyss) 45%,transparent),color-mix(in srgb,var(--abyss) 10%,transparent) 35%,color-mix(in srgb,var(--abyss) 94%,transparent));z-index:-2}
 
 .scan-ring{position:absolute;right:19%;top:27%;width:100px;height:100px;border:1px solid var(--zone-accent);border-radius:50%;box-shadow:0 0 50px var(--zone-accent);z-index:-1;pointer-events:none}
 
-.dive-card-head,.dive-card-foot{position:absolute;left:30px;right:30px;display:flex;justify-content:space-between;gap:15px;align-items:center;font-size:.68rem;letter-spacing:.15em;font-weight:800;color:#d8f1ef}
+.dive-card-head,.dive-card-foot{position:absolute;left:30px;right:30px;display:flex;justify-content:space-between;gap:15px;align-items:center;font-size:.68rem;letter-spacing:.15em;font-weight:800;color:var(--ink-muted)}
 
 .dive-card-head{top:28px}
 
@@ -50,37 +50,41 @@
 
 .dive-card-body .section-kicker{color:var(--zone-accent)}
 
-.dive-card-body h3{font-family:var(--display);font-size:clamp(2.7rem,4.6vw,5rem);line-height:.94;font-weight:900;max-width:580px;margin:14px 0}
+.dive-card-body h3{font-family:var(--font-display);font-size:clamp(2.7rem,4.6vw,5rem);line-height:.94;font-weight:900;max-width:580px;margin:14px 0}
 
-.dive-card-body p{max-width:470px;line-height:1.55;color:#dfefee;margin:0 0 21px}
+.dive-card-body p{max-width:470px;line-height:1.55;color:var(--ink);margin:0 0 21px}
 
 .card-link,.underlined{background:transparent;border:0;border-bottom:1px solid currentColor;padding:9px 0;color:var(--zone-accent);font-size:.75rem;letter-spacing:.15em;font-weight:900}
 
 .card-link span,.underlined span{margin-left:26px}
 
-.dive-card-foot{bottom:25px;color:#b6d9d9}
+.dive-card-foot{bottom:25px;color:var(--ink-muted)}
 
-.dive-card-foot div{width:45%;height:3px;background:rgba(217,255,252,.34)}
+.dive-card-foot div{width:45%;height:3px;background:var(--hairline-firm)}
 
 .dive-card-foot div i{display:block;height:100%;background:var(--zone-accent);transition:width .55s ease}
 
-.manifesto{background:#dcefeb;color:#08232b;padding:107px max(34px,calc((100vw - 1380px)/2)) 130px}
+/* The manifesto's inverted panel. --surface-invert/--ink-invert/--accent-invert
+   are the three roles it needs; the link is --accent-invert pulled toward the
+   panel's own ink, because a 10rem em and a 12px link do not want the same
+   contrast against a pale ground. */
+.manifesto{background:var(--surface-invert);color:var(--ink-invert);padding:107px max(34px,calc((100vw - 1380px)/2)) 130px}
 
-.manifesto .section-kicker{color:#197b80}
+.manifesto .section-kicker{color:var(--accent-invert)}
 
 .manifesto-top{display:flex;justify-content:space-between;gap:25px;font-size:.7rem;letter-spacing:.15em;font-weight:800}
 
 .manifesto-grid{display:grid;grid-template-columns:1.45fr .55fr;gap:80px;align-items:end;margin-top:57px}
 
-.manifesto h2{font-family:var(--display);font-size:clamp(4.5rem,9vw,10rem);line-height:.84;letter-spacing:-.03em;margin:0;font-weight:900}
+.manifesto h2{font-family:var(--font-display);font-size:clamp(4.5rem,9vw,10rem);line-height:.84;letter-spacing:-.03em;margin:0;font-weight:900}
 
-.manifesto h2 em{font-style:normal;color:#24939a}
+.manifesto h2 em{font-style:normal;color:var(--accent-invert)}
 
 .manifesto-grid>div{padding-bottom:6px}
 
-.manifesto-grid p{font-size:1.06rem;line-height:1.7;color:#28464c;margin:0 0 29px}
+.manifesto-grid p{font-size:1.06rem;line-height:1.7;color:var(--ink-invert);margin:0 0 29px}
 
-.underlined{color:#0c5e66}
+.underlined{color:color-mix(in srgb,var(--accent-invert) 65%,var(--ink-invert))}
 
 .final-cta{height:650px;position:relative;overflow:hidden;isolation:isolate}
 
@@ -88,18 +92,25 @@
 
 .final-cta:hover .final-image{transform:scale(1.05)}
 
-.final-shade{position:absolute;inset:0;background:linear-gradient(90deg,rgba(3,16,25,.92),rgba(3,18,25,.57) 55%,rgba(3,18,25,.08)),linear-gradient(0deg,#06141c,transparent 30%);z-index:-1}
+.final-shade{position:absolute;inset:0;background:linear-gradient(90deg,color-mix(in srgb,var(--abyss) 92%,transparent),color-mix(in srgb,var(--abyss) 57%,transparent) 55%,color-mix(in srgb,var(--abyss) 8%,transparent)),linear-gradient(0deg,var(--abyss),transparent 30%);z-index:-1}
 
 .final-content{width:min(1380px,calc(100% - 68px));height:100%;margin:auto;display:flex;flex-direction:column;justify-content:center;align-items:start}
 
-.final-content h2{font-family:var(--display);font-size:clamp(5rem,10vw,10rem);line-height:.85;letter-spacing:-.03em;margin:22px 0}
+.final-content h2{font-family:var(--font-display);font-size:clamp(5rem,10vw,10rem);line-height:.85;letter-spacing:-.03em;margin:22px 0}
 
-.final-content h2 em{font-style:normal;color:var(--cyan)}
+.final-content h2 em{font-style:normal;color:var(--glow)}
 
-.final-content p{font-size:1rem;line-height:1.6;color:#d7eeec;max-width:380px;margin:0 0 28px}
+.final-content p{font-size:1rem;line-height:1.6;color:var(--ink);max-width:380px;margin:0 0 28px}
 
 @media(max-width:1160px){.manifesto-grid{grid-template-columns:1fr .75fr;gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px 1fr 20px}}
 
 @media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:1fr}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px 1fr}.dive-tab-arrow{display:none}.dive-tab b{font-size:1rem}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
 
-@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.4rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:1rem}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}
+/* 3.4rem -> 3.1rem, and only here. `KATMANLARI` inside #dive-title is one
+   unbreakable word: 302.4px wide in Selim Sans Condensed at 3.4rem, against a
+   282px measure at 320px. The display face this replaced measured it at
+   259.8px and it fit. Scaling to 3.1rem puts the word at 275.7px, so the right
+   edge lands at 294.7 instead of 321.4 and the page stops overflowing by 1px.
+   The 600px block is already where this heading is resized to fit a narrow
+   viewport; nothing above 600px moves. */
+@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:1rem}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}

@@ -193,8 +193,9 @@
 
 /* --- Font tokens -------------------------------------------------------
    'Arial Narrow' is the fallback that carries the condensed width if the
-   woff2 fails, and Impact is deliberately NOT here: --display stays declared
-   in style.css until Task 6 repoints its consumers at --font-display. */
+   woff2 fails. The body and display stacks resolve to the Selim cuts; the
+   stacks exist at all so a failed download still lands on a condensed
+   fallback rather than on the default UI face and reflowing the whole page. */
 
 :root {
   --font-display: 'Selim Sans Condensed', 'Arial Narrow', system-ui, sans-serif;

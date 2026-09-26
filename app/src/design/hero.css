@@ -3,7 +3,7 @@
    .scroll-cue, .ticker and the @keyframes marquee it animates, plus the
    .button-primary/.button-ghost pair used by the hero actions. */
 
-.hero{height:100svh;min-height:720px;position:relative;isolation:isolate;overflow:hidden;background:#071923}
+.hero{height:100svh;min-height:720px;position:relative;isolation:isolate;overflow:hidden;background:var(--deep)}
 
 .hero-image{position:absolute;inset:-5% 0;background-size:cover;background-position:center 48%;z-index:-3;will-change:transform}
 
@@ -11,57 +11,62 @@
 
 .ocean-canvas canvas{display:block;width:100%;height:100%}
 
-.hero-vignette{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,rgba(3,18,25,.94) 0%,rgba(3,23,31,.6) 45%,rgba(3,19,27,.07) 80%),linear-gradient(180deg,rgba(3,19,27,.45),transparent 23%,rgba(3,19,27,.1) 58%,#06141c 100%)}
+/* Every stop in this stack is one hue at one alpha. The alphas are the design
+   decision and are kept exactly; the twenty near-identical dark teals the
+   literals used to carry are not, so each stop is a color-mix() of --abyss. */
+.hero-vignette{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,color-mix(in srgb,var(--abyss) 94%,transparent) 0%,color-mix(in srgb,var(--abyss) 60%,transparent) 45%,color-mix(in srgb,var(--abyss) 7%,transparent) 80%),linear-gradient(180deg,color-mix(in srgb,var(--abyss) 45%,transparent),transparent 23%,color-mix(in srgb,var(--abyss) 10%,transparent) 58%,var(--abyss) 100%)}
 
 .hero-inner{width:min(1380px,calc(100% - 68px));height:100%;margin:auto;padding-top:76px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:3}
 
-.hero-meta{display:flex;justify-content:space-between;max-width:850px;margin:0 0 33px;color:#cce9e8;font-size:.73rem;font-weight:800;letter-spacing:.15em}
+.hero-meta{display:flex;justify-content:space-between;max-width:850px;margin:0 0 33px;color:var(--ink-muted);font-size:.73rem;font-weight:800;letter-spacing:.15em}
 
 .micro-label{display:flex;align-items:center;gap:11px}
 
-.hero-coord{color:#b9d8da}
+.hero-coord{color:var(--ink-muted)}
 
-.hero h1{font-family:var(--display);font-size:clamp(5.1rem,10.1vw,10.5rem);line-height:.84;font-weight:900;letter-spacing:-.035em;margin:0;text-transform:uppercase;max-width:1300px}
+.hero h1{font-family:var(--font-display);font-size:clamp(5.1rem,10.1vw,10.5rem);line-height:.84;font-weight:900;letter-spacing:-.035em;margin:0;text-transform:uppercase;max-width:1300px}
 
 .hero-word{display:block;white-space:nowrap}
 
-.hero-word.outline{color:transparent;-webkit-text-stroke:1.5px #d9f0ee}
+.hero-word.outline{color:transparent;-webkit-text-stroke:1.5px var(--ink)}
 
-.hero-word.aqua{color:var(--cyan);font-size:.88em;text-shadow:0 0 56px rgba(103,247,223,.2)}
+.hero-word.aqua{color:var(--glow);font-size:.88em;text-shadow:0 0 56px color-mix(in srgb,var(--glow) 20%,transparent)}
 
 .hero-bottom{display:flex;justify-content:space-between;align-items:end;gap:35px;max-width:1090px;margin-top:43px}
 
-.hero-bottom p{max-width:440px;font-size:1.02rem;line-height:1.65;color:#d9e9e9;margin:0}
+.hero-bottom p{max-width:440px;font-size:1.02rem;line-height:1.65;color:var(--ink);margin:0}
 
 .hero-actions{display:flex;align-items:center;gap:13px}
 
-.button-primary,.button-ghost{min-height:51px;padding:15px 19px;border:1px solid var(--cyan);display:inline-flex;justify-content:space-between;align-items:center;gap:27px;font-size:.73rem;letter-spacing:.12em;font-weight:900;text-transform:uppercase;white-space:nowrap;transition:transform .22s,background .22s,color .22s}
+.button-primary,.button-ghost{min-height:51px;padding:15px 19px;border:1px solid var(--glow);display:inline-flex;justify-content:space-between;align-items:center;gap:27px;font-size:.73rem;letter-spacing:.12em;font-weight:900;text-transform:uppercase;white-space:nowrap;transition:transform .22s,background .22s,color .22s}
 
-.button-primary{background:var(--cyan);color:#06242b}
+.button-primary{background:var(--glow);color:var(--ink-invert)}
 
-.button-ghost{background:rgba(3,25,32,.35);color:#edfaf8}
+.button-ghost{background:color-mix(in srgb,var(--abyss) 35%,transparent);color:var(--ink)}
 
 .button-primary:hover,.button-ghost:hover{transform:translateY(-4px)}
 
-.button-primary:hover{background:#adfff5}
+/* The two hover states are --glow lifted toward --ink rather than a second
+   literal, so the family stays one hue at two lightnesses. */
+.button-primary:hover{background:color-mix(in srgb,var(--glow) 50%,var(--ink))}
 
-.button-ghost:hover{background:rgba(125,239,228,.14)}
+.button-ghost:hover{background:color-mix(in srgb,var(--glow) 14%,transparent)}
 
-.hero-rail{position:absolute;right:max(34px,calc((100vw - 1380px)/2));top:26%;bottom:21%;display:flex;align-items:center;gap:15px;writing-mode:vertical-rl;color:#d4eeec;font-size:.68rem;letter-spacing:.15em;z-index:4}
+.hero-rail{position:absolute;right:max(34px,calc((100vw - 1380px)/2));top:26%;bottom:21%;display:flex;align-items:center;gap:15px;writing-mode:vertical-rl;color:var(--ink-muted);font-size:.68rem;letter-spacing:.15em;z-index:4}
 
-.rail-line{width:1px;flex:1;background:rgba(221,255,252,.36);position:relative}
+.rail-line{width:1px;flex:1;background:var(--hairline-firm);position:relative}
 
-.rail-line i{position:absolute;top:0;left:-2px;width:5px;height:40%;background:var(--cyan);box-shadow:0 0 18px var(--cyan)}
+.rail-line i{position:absolute;top:0;left:-2px;width:5px;height:40%;background:var(--glow);box-shadow:0 0 18px var(--glow)}
 
 .scroll-cue{position:absolute;left:max(34px,calc((100vw - 1380px)/2));bottom:30px;display:flex;align-items:center;gap:14px;font-size:.68rem;letter-spacing:.18em;z-index:4}
 
-.scroll-cue div{height:1px;width:75px;background:var(--cyan)}
+.scroll-cue div{height:1px;width:75px;background:var(--glow)}
 
-.ticker{overflow:hidden;background:var(--cyan);color:#06242b;height:59px;display:flex;align-items:center;white-space:nowrap;font-family:var(--display);font-size:1.35rem;letter-spacing:.11em}
+.ticker{overflow:hidden;background:var(--glow);color:var(--ink-invert);height:59px;display:flex;align-items:center;white-space:nowrap;font-family:var(--font-display);font-size:1.35rem;letter-spacing:.11em}
 
 .ticker div{min-width:max-content;animation:marquee 25s linear infinite}
 
-.ticker span{margin:0 25px;font-family:Arial;font-size:1rem}
+.ticker span{margin:0 25px;font-family:var(--font-body);font-size:1rem}
 
 @keyframes marquee{to{transform:translateX(-50%)}}
 

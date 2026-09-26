@@ -7,6 +7,7 @@ const NAMES = [
   'abyss', 'deep', 'water', 'kelp', 'glow', 'amber', 'coral',
   'ink', 'ink-muted', 'ink-faint', 'surface', 'surface-2',
   'hairline', 'hairline-firm', 'scrim',
+  'surface-invert', 'ink-invert', 'accent-invert', 'edge',
 ]
 
 export function readTokens(root = document.documentElement) {
