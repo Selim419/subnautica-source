@@ -496,8 +496,11 @@ Vitest ile **yalnızca saf modüller**:
 - `regimes.test.js` — derinlik → rejim sınır değerleri (0, 80, 200, 525, 1065, 1400),
   1400+ üstü sınır, indeks sürekliliği, metrenin monoton artması, **rejim sayısı 5**
 - `biomes.test.js` — 6 kayıt; her biri geçerli bir `regime` anahtarına bağlı; derinlik
-  aralıkları bitişik ve artan (bölüm *n* sonu = bölüm *n+1* başı); `id`'ler
-  `wikiData.js` içinde karşılık buluyor
+  aralıkları bitişik ve artan (bölüm *n* sonu = bölüm *n+1* başı); `wiki` alanı
+  **boş değilse** `wikiData.js` içinde karşılık buluyor, **boşsa** bölümde kayda
+  giden bağlantı hiç basılmıyor. `wikiData.js` dokunulmaz olduğu için yeni üç
+  biyomun (Mantar Ormanı, Ampul Zonu, Kükürt Deposu) `wiki` alanı `null`'dır —
+  var olmayan bir kayda bağlantı vermek §6.4/2'yi (dürüst içerik) ihlal ederdi
 - `useDiveDepth.test.js` — `0..1` clamp, sıfır ve bir uçları, metre doğruluğu,
   **yukarı ve aşağı kaydırmada aynı `progress`**
 
