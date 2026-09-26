@@ -37,7 +37,15 @@ daha çekici hâle getirmek. Kütüphaneler zaten kuruludur; kullanım derinleş
 
 ### 1.3 Kapsam dışı
 
-Faz 1 içeriğin **metinlerine, kaynak bağlantılarına ve görsellerine dokunmaz.**
+**Dokunulmaz:** `wikiData.js` (kayıtlar, kaynak bağlantıları), mevcut biyom
+metinlerinin **sözcükleri** (D13 yalnız *yeni* kayıt ekler, üç mevcut kaydı
+olduğu gibi taşır), `.manifesto` ve `.final-cta` (D14), `ocean-hero.webp` ve
+`lost-river.webp` (D17).
+
+**Kapsam içi değişiklikler:** `.dive` sekme bölümünün omurgaya dönüşmesi (D12),
+hero'nun `.webp` + kendi sahne örneği + `.hero-rail`'inin kaldırılması (D15,
+D16), `kelp-forest.webp`'nin silinmesi (D17), üç yeni biyom kaydı (D13).
+
 Faz 2 (harita, crafting, upgrade ağacı) ve Faz 3 (cilalama) ayrı spesifikasyonlardır.
 
 ---
@@ -70,6 +78,20 @@ her bölümde bir biyom açılır. Bu sırada site kendini oyunun bir aracı gib
 | D8 | `TextRoll` kodu bizim dosyamıza alınır, Skiper atfı kaldırılır | Artık onların kodu kullanılmıyor; kazanılan şey iyi bir fikir |
 | D9 | CI yeşil değilse deploy olmaz | Şu an elle kopyalama var; kırık build canlı siteyi kırar |
 
+**Uygulama öncesi netleştirilen kararlar** (Faz 1'de tasarım sistemi bittikten,
+omurga kurulmadan önce):
+
+| # | Karar | Gerekçe |
+|---|---|---|
+| D10 | **Yaklaşım A — sahne sorumluluğu tam alır.** Tek sabit tam ekran perde, içerik metni üzerine akar | Alternatif B'de rejim geçişi hem CSS hem shader tarafında iki kez kodlanır — §4.1'in önlemeye çalıştığı çakışmanın kendisi. Alternatif C Three.js'e hiçbir iş vermez, "daha etkileyici" hedefine ulaşmaz |
+| D11 | **6 bölüm = 6 biyom.** Ampul Zonu ve Kükürt Deposu ayrı bölüm | §5'in "son ikisi `biolum` rejimini paylaşır" maddesi korunur: bölüm 5–6 aynı rejimde kalır, yalnız vurgu rengi değişir. Bölüm sayısının5 olduğu yazımı yanlıştı |
+| D12 | **Mevcut `.dive` sekme bölümü omurgaya dönüştürülür** — silinmez, yutulmaz, akar | Aynı biyomi iki yerde göstermek DOM şişirir ve tekrar hissi yaratır. Mevcut `.dive-card`'ın tarama halkası ve ilerleme çubuğu DepthGauge'e taşınır |
+| D13 | **6 yeni biyom kaydı yazılır** (Mantar Ormanı, Ampul Zonu, Kükürt Deposu) | Mevcut 3 kayıt omurganın yarısını boş bırakırdı. Ton mevcut üçüyle aynı: ölçü aleti kesinliği + biyom canlılığı |
+| D14 | **Sayfa iskeleti:** `.hero` → 6 dalış bölümü → `.manifesto` → `.final-cta` | Manifesto nefes alma rolünü kaybetmemeli; omurğa yalnız dalıştır |
+| D15 | **Hero dahil tek `OceanCanvas`.** Sahne sayfanın tepesinden omurganın sonuna kadar aynı `position: fixed` katmanda; hero'nun kendi `<OceanScene />` örneği ve `.hero-image` `.webp`'si kaldırılır | İki WebGL bağlamı demek: iki renderer, iki dispose, spec §4.3'ün "yaşam döngüsü tek sahibi" kuralını ihlal. Ayrıca D2 "tamamen prosedürel" — hero'nun fotoğrafı bu istisnayı doğurmuyor. Hero, omurganın 0 m'si: `daylight` rejimi zaten onun atmosferi |
+| D16 | **`.hero-rail` (`01 / 03` + `DERİNLİK 000 M`) emekli, yerine `DepthGauge`.** Cetvel sayfanın tepesinde 000 M'den başlar | Aynı anda iki derinlik göstergesi olmaz; cetvel `z 2`'de fixed olduğu için hero'nun kendi göstergesiyle üst üste biner |
+| D17 | **`kelp-forest.webp` (222.6 KB) silinir.** Artık tek kullanıcısı emekli `.dive-card`'dı | `ocean-hero.webp` (hero) ve `lost-river.webp` (final-cta) D14 gereği **kalmaya devam eder** — bunlar kapsam dışı |
+
 ### 3.1 Reddedilen seçenekler
 
 - **Oyunun kendi asset'leri** — yeniden dağıtım ve lisans riski, dosya boyutu.
@@ -99,8 +121,10 @@ app/src/
     readTokens.js       ← CSS değişkenlerini bir kez okur, JS'e geçirir
   dive/
     regimes.js          ← SAF VERİ: derinlik aralığı → atmosfer parametreleri
-    useDiveDepth.js     ← scroll 0..1 → { metres, regime, index, progress }
-    DiveScroll.jsx      ← scroll uzunluğunu tanımlar, sahneyi sabitler
+    biomes.js           ← SAF VERİ: 6 biyom kaydı (D13) — ad, EN ad, derinlik
+                          aralığı, satır, metin, vurgu, wiki id, regime id
+    useDiveDepth.js     ← scroll 0..1 → { metres, regime, index, progress, frameRef }
+    DiveScroll.jsx      ← scroll uzunluğunu tanımlar, sahneyi sabitler (D10)
     DepthGauge.jsx      ← dikey cetvel + metre göstergesi
   scene/
     buildScene.js       ← sahne kurulumunun tek giriş noktası
@@ -123,6 +147,7 @@ app/src/
 | Modül | Sorumluluk | Bağımlılık |
 |---|---|---|
 | `regimes.js` | Derinlik → atmosfer eşlemesi | **Yok.** Three.js, React, CSS import etmez. Saf veri. |
+| `biomes.js` | 6 biyomun metadatası (D13) | **Yok.** `regimes.js`'i yalnız `regime` anahtarıyla eşler, içeriği yorumlamaz. Saf veri. |
 | `useDiveDepth.js` | Scroll → metre + rejim | `regimes.js` |
 | `DepthGauge.jsx` | Göstergenin çizimi | `useDiveDepth` dönüşündeki `frameRef` (salt okuma) |
 | `OceanCanvas.jsx` | Kurma, dispose, duraklatma | `regimes.js`, `buildScene.js` |
@@ -154,27 +179,65 @@ teknik garantisi budur.
 `buildScene.js` rejim değişiminde tüm sahneyi yeniden kurmaz; yalnızca
 `regimes.js`'ten gelen hedef değerlere **geçiş yapar** (uniform lerp, 600 ms).
 
+### 4.5 Kompozisyon (D10, D15, D16)
+
+Sahne tek bir tam ekran `canvas`'tır, `position: fixed` ile durur ve **hero dahil**
+sayfanın tepesinden son dalış bölümünün sonuna kadar hiç kaymaz. İçerik (metin)
+z-index üstünde onun üzerinden akar. Bu katmanlar:
+
+```
+  z 2   DepthGauge          fixed, sol kenar, aria-hidden. 000 M'den başlar (D16)
+  z 1   hero + 6 bölüm      belge akışında; bölümler scrim'li, hero yalnız vignette
+  z 0   OceanCanvas         fixed, tam ekran, sayfanın tepesinde (D15)
+  z -1  CSS gradyan yedeği   three yüklenmeden ve WebGL yokken görünen katman
+```
+
+**Hero, omurganın 0 m'sidir.** `three` `React.lazy` ayrı chunk olduğu için ilk
+boyamada henüz yoktur; o ana kadar `z -1`'deki `daylight` CSS gradyanı görünür,
+canvas geldiğinde üzerine çıkar. Hem ilk boya hem WebGL kapatılmış hâli aynı
+katman çözer — §8.3'ün "CSS gradyanına düşer" kuralı bu yüzden özel bir yedek
+yazmadan çalışır. Hero'nun `.hero-image` `.webp`'si ve kendi `<OceanScene />`
+örneği bu yüzden kaldırılır (D15).
+
+**Metin okunabilirliği opak panelle değil, yönlü scrim ile çözülür.** Her bölüm
+kendi `.dive-section` kutusuna `linear-gradient` bir köşeden alır (metnin durduğu
+taraf, koyu → şeffaf, ~28vh geçiş). Panel yok: okyanus hiçbir bölümde tamamen
+kapanmaz, D10'un gerekçesi budur. Kabul: gövde metni zeminin *o anki* rengine
+karşı ≥ 4.5:1 — bunu `visual-check.mjs` ölçüyor, göz kararı değil.
+
+**Biyom yapısı sahnenin içindedir** (D10): yosun gövdeleri `kelp.js`, mantar
+ağaçları ve mercan `water.js`/`kelp.js` geometrisi, biyolüminesan noktalar
+`particulate.js`. Bölümlerde yalnız metin ve DepthGauge kalır. Sonuç: `biomes.js`
+tek bir `image` alanı taşımaz — mevcut `.dive-card` görsellerinin işini sahne
+üstlenir (D2).
+
+**Ölçek:** `--dive-length: 900vh` = hero 100vh + 6 × 133.3vh.
+
 ---
 
 ## 5. Derinlik rejimleri
 
-Scroll toplam uzunluğu `--dive-length: 900vh` (hero 100vh + 5 bölüm × ~160vh).
+Scroll toplam uzunluğu `--dive-length: 900vh` (hero 100vh + 6 bölüm × ~133vh).
+Bölüm sayısı biyom sayısına eşittir (D11), rejim sayısına değil.
 
-| Derinlik | Rejim | Biyom anı | Atmosfer |
-|---|---|---|---|
-| 0–80 m | `daylight` | Sığ Resifler | Gündüz; ışık huzmeleri belirgin, su açık turkuaz |
-| 80–200 m | `twilight` | Yosun Ormanı | Alacakaranlık; huzmeler sönüyor, kelp giriyor |
-| 200–525 m | `midnight` | Mantar Ormanı | Mavi-siyah; biyolüminesan noktalar beliriyor |
-| 525–1065 m | `deep` | Kayıp Nehir | Derin karanlık; sis artıyor, uzaklık çöktü |
-| 1065–1400 m | `biolum` | Ampul Zonu | Siyah; amber-mor ışık, belirgin biyo-koridorlar |
-| 1400 m+ | `biolum` | Kükürt Deposu | Aynı atmosfer; altın-lav vurgusu ve lav ışığı |
+| # | Derinlik | Rejim | Biyom anı | Atmosfer |
+|---|---|---|---|---|
+| 1 | 0–80 m | `daylight` | Sığ Resifler | Gündüz; ışık huzmeleri belirgin, su açık turkuaz |
+| 2 | 80–200 m | `twilight` | Yosun Ormanı | Alacakaranlık; huzmeler sönüyor, kelp giriyor |
+| 3 | 200–525 m | `midnight` | Mantar Ormanı | Mavi-siyah; biyolüminesan noktalar beliriyor |
+| 4 | 525–1065 m | `deep` | Kayıp Nehir | Derin karanlık; sis artıyor, uzaklık çöktü |
+| 5 | 1065–1400 m | `biolum` | Ampul Zonu | Siyah; amber-mor ışık, belirgin biyo-koridorlar |
+| 6 | 1400 m+ | `biolum` | Kükürt Deposu | Aynı atmosfer; altın-lav vurgusu ve lav ışığı |
 
-**Not:** Son iki biyom anı `biolum` rejimini paylaşır. Görsel fark atmosferden değil,
-vurgu renginden ve sahne yerleşiminden gelir — bu, 6 ayrı atmosfer kodlamaktan bilinçli
-olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile birebir tutarlıdır.
+**Not:** Bölüm 5 ve 6 aynı `biolum` rejimini paylaşır. Rejim geçişi olmaz —
+yalnız `--zone-accent` amber-mor → altın-lav olur ve sahnedeki biyom geometrisi
+değişir. Bunu `regimes.js` değil, `biomes.js`'in `accent` alanı taşır. Bu, 6 ayrı
+atmosfer kodlamaktan bilinçli olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile
+birebir tutar.
 
-`regimes.js` her rejim için şunları tanımlar: `water` rengi, `fogDensity`, `lightIntensity`,
-`lightColor`, `raysOpacity`, `particleDensity`, `biolumIntensity`, `accent`.
+`regimes.js` her rejim için şunları tanımlar: `water` rengi, `fogDensity`,
+`lightIntensity`, `lightColor`, `raysOpacity`, `particleDensity`,
+`biolumIntensity`, `accent`. **5 satır** — `biolum` bir kez tanımlıdır.
 
 ---
 
@@ -246,15 +309,16 @@ blokları. Yeni bileşen eklerken hangi değişkenin kullanılacağına karar ve
 
 ### 6.4 Tasarım kapıları
 
-Aşağıdaki altı kural Faz 1'in **kabul kriteridir**; "iyi görünüyor" yeterli bir gerekçe
-değildir. Altıncı madde hariç bunlar bir denetim listesidir, tartışmaya açık değildir.
+Aşağıdaki yedi kural Faz 1'in **kabul kriteridir**; "iyi görünüyor" yeterli bir gerekçe
+değildir. Altıncı madde hariç hepsi bir denetim listesidir, tartışmaya açık değildir.
 
 1. **Kilitli token'lar.** Her renk ve her `font-family` bildirimi adlandırılmış bir
    token'a başvurur (`var(--color-amber)`, `font-family: var(--font-display)`). Satır
    içi hex, `oklch()` veya `rgb()` ve token'ı atlayan bir `font-family: "Font Adı"`
    bildirimi kabul edilmez. Gerekli ama token'da olmayan bir değer önce token
    bloğuna yeni bir isimle eklenir, sonra referanslanır.
-   *Bu, F12’nin (66 benzersiz token dışı hex) karşılığıdır — sayı 20’ye inmeli.*
+   *Bu, F12'nin karşılığıdır — 81 literal, 70 benzersiz hex. Plan 2A'da `tokens.css`
+   dışında **0** kaldı (41 adlandırılmış token), `measure` kapılarıyla doğrulandı.*
 2. **Dürüst içerik.** Kullanıcı vermediği hiçbir sayı uydurulamaz. "3 biyom keşfedildi",
    "50.000+ hayran", "%47 artış" gibi ifadeler yapılmaz. Dalış deneyimi bir sayaç
    göstermeye zorlanırsa, gerçek değer `localStorage`'da tutulmuyorsa gösterilmez.
@@ -267,7 +331,13 @@ değildir. Altıncı madde hariç bunlar bir denetim listesidir, tartışmaya a�
 6. **Yayın öncesi öz-eleştiri.** Her çıktı altı eksende 1–5 puanlanır: felsefe,
    hiyerarşi, uygulama, özgüllük, ölçülülük, çeşitlilik. **3'ün altı herhangi bir
    eksende revizyon turunu tetikler.** Altı skor çıktının üstüne damgalanır ve
-   hangi eksende neden revize edildiği not edilir.
+   hangi    eksende neden revize edildiği not edilir.
+7. **Metin kontrastı ölçülür.** §4.5'teki scrim, okyanusun *o anki* rengine karşı
+   gövde metnini ≥ 4.5:1, büyük metni ≥ 3:1'de tutmalı — çünkü metin artık panelin
+   içinde değil, sahnenin üstünde. Ölçüm gözle değil `visual-check.mjs contrast`
+   ile yapılır; her bir zorunlu genişlikte ve her rejim sınırında (metin o rejimdeyken)
+   örnek alınır. Bir tek örnek düşerse kapı düşer. §8.2'deki `--amber` ≥ 7:1
+   kontrolü bu maddeye dahildir.
 
 **Bu kapıların kapsamadığı ve kapsam dışı bıraktıklarımız:** makrostructure veya tema
 seçimi. Onaylanan yön (C — hibrt) üç mockup turundan sonra kesinleşti; bu faz
@@ -424,8 +494,18 @@ kılan asıl neden — hiçbir dış görsele bağımlılık olmadığı için y
 Vitest ile **yalnızca saf modüller**:
 
 - `regimes.test.js` — derinlik → rejim sınır değerleri (0, 80, 200, 525, 1065, 1400),
-  1400+ üstü sınır, indeks sürekliliği, metrenin monoton artması
-- `useDiveDepth.test.js` — `0..1` clamp, sıfır ve bir uçları, metre doğruluğu
+  1400+ üstü sınır, indeks sürekliliği, metrenin monoton artması, **rejim sayısı 5**
+- `biomes.test.js` — 6 kayıt; her biri geçerli bir `regime` anahtarına bağlı; derinlik
+  aralıkları bitişik ve artan (bölüm *n* sonu = bölüm *n+1* başı); `id`'ler
+  `wikiData.js` içinde karşılık buluyor
+- `useDiveDepth.test.js` — `0..1` clamp, sıfır ve bir uçları, metre doğruluğu,
+  **yukarı ve aşağı kaydırmada aynı `progress`**
+
+`visual-check.mjs` kapıları (Vitest dışı, mevcut harness'a eklenir):
+
+- `measure` — 4 zorunlu genişlik + 1440; `overflow:false`, `bodyOverflowX:"clip"`,
+  kırık metin 0
+- `contrast` — §6.4/7; her genişlik × rejim sınırında gövde kontrastı ≥ 4.5:1
 
 React bileşenlerine test kütüphanesi **eklenmez** — bu projede orantısız maliyet,
 görsel doğrulama daha gerçek bir kontrol.
@@ -454,6 +534,7 @@ app/src/design/type.css
 app/src/design/layout.css
 app/src/design/readTokens.js
 app/src/dive/regimes.js
+app/src/dive/biomes.js
 app/src/dive/useDiveDepth.js
 app/src/dive/DiveScroll.jsx
 app/src/dive/DepthGauge.jsx
@@ -465,6 +546,7 @@ app/src/scene/shaders/kelp.js
 app/src/scene/shaders/particulate.js
 app/src/components/WordCycle.jsx
 app/src/dive/regimes.test.js
+app/src/dive/biomes.test.js
 app/src/dive/useDiveDepth.test.js
 app/public/fonts/*.woff2
 app/public/fonts/OFL.txt
@@ -478,7 +560,8 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 
 | Dosya | Neden |
 |---|---|
-| `app/src/OceanScene.jsx` | `scene/OceanCanvas.jsx` + `buildScene.js` yerine geçiyor |
+| `app/src/OceanScene.jsx` | `scene/OceanCanvas.jsx` + `buildScene.js` yerine geçiyor; hero artık aynı örneği paylaşır (D15) |
+| `app/public/kelp-forest.webp` | Emekli `.dive-card`'ın tek kullanıcısıydı; biyom görselini sahne üstleniyor (D17) |
 | `app/src/skiper58.jsx` | `components/WordCycle.jsx` yerine geçiyor (D8) |
 | `app/src/style.css` | `design/*.css` + bileşen bloklarına bölünüyor |
 | `docs/assets/`, `docs/index.html`, `docs/*.webp` | `docs/` artık build çıktısı değil (7.2) |
@@ -490,8 +573,10 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 | `app/vite.config.js` | `outDir: 'dist'`, `base: process.env.PAGES_BASE ?? '/'` |
 | `app/index.html` | font `preload`, `<noscript>`, güncellenmiş `theme-color` |
 | `app/src/main.jsx` | yeni token'lar, `DiveScroll` montajı |
-| `app/src/HomeView.jsx` | `DiveScroll` + `DepthGauge`; **içerik metinleri değişmez** |
+| `app/src/HomeView.jsx` | `.dive` (sekme + kart) → `<DiveScroll>` + 6 `<section>` (D12); `diveZones` → `dive/biomes.js`; hero `.hero-image` + `<OceanScene />` + `.hero-rail` kaldırılır (D15, D16); manifesto ve final-cta **değişmez** (D14) |
 | `app/src/WikiView.jsx` | token uyumu, arka plan gradyanları; **kayıtlar değişmez** |
+| `app/src/design/dive.css` | sekme blokları → 6 `.dive-section` + scrim (D12) |
+| `app/src/design/hero.css` | `.hero-image`/`.hero-rail` kaldırıldı (D15, D16); `.hero-vignette` korunur |
 | `app/package.json` | `test` script'i, `vitest` devDependency |
 | `.gitignore` | `.superpowers/`, `app/dist/` |
 | `README.md` | yeni boru hattı ve komutlar |
@@ -502,12 +587,14 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 
 | Risk | Etki | Azaltma |
 |---|---|---|
-| Plex'e geçince başlıklar taşar / ritim bozulur | Orta | Tipografi ölçeği tarayıcıda yeniden ölçülür; `Impact`'ten daha geniş olduğu için display boyutları gözden geçirilir |
+| Plex'e geçince başlıklar taşar / ritim bozulur | ~~Orta~~ **Kapandı** | Plan 2A'da ölçüldü: 5 genişlikte `overflow:false`, kırık metin 0. `Impact` emekli |
 | Mobilde düşük FPS | Orta | Partikül bütçesi düşük; `IntersectionObserver` durdurma; gerekirse otomatik sadeleşme |
 | Aynı commit iki siteyi birden bozar | Yüksek | CI yeşil gate; `release.mjs` o SHA'nın `CI` koşusu `success` olmadan pin yazmaz. Deploy sırası garanti edilmez ve iki siteyi birden güncellemek gerekmez |
 | Yeni repo adı beğenilmez | Düşük | Ad tek satır değişiklik; build çıktısına dokunmaz |
-| 3 `.webp` kartlarda döngüsel kalıyor | Düşük | Faz 1'de dokunulmaz; arka planlar CSS gradyanına geçer |
+| ~~3 `.webp` kartlarda döngüsel kalıyor~~ **Kapandı** | Düşük | Kart yok (D12); `kelp-forest.webp` siliniyor (D17). `ocean-hero` ve `lost-river` D14 gereği duruyor |
 | Shader yazmak uzun sürer | Orta | `regimes.js` saf veri olduğu için önce atmosfer çalışır, efektler sonra eklenir |
+| **Tek canvas hero dahil olduğu için ilk boyamada görünmez** (D15) | Orta | `z -1` gradyan hem three yüklenene kadar hem WebGL kapalıyken aynı işi görür; canvas geldiğinde opak olur |
+| **Scrim'siz metin kontrastı sahneye bağlı** | Yüksek | Kontrast `visual-check.mjs` ile ölçülür (≥4.5:1); scrim agresifliği ölçümle ayarlanır, göz kararı değil |
 
 ---
 
@@ -516,7 +603,7 @@ docs/superpowers/specs/2026-09-25-subnautica-dive-spine-design.md
 ### Faz 1 — Dalış omurgası (bu spesifikasyon)
 1. Yayın boru hattı: yeni repo, `outDir: dist`, `ci.yml` + `deploy.yml`
 2. Tasarım sistemi: token'lar, IBM Plex, `style.css` bölünmesi
-3. `regimes.js` + `useDiveDepth` + testleri
+3. `regimes.js` + `biomes.js` (6 kayıt, D13) + `useDiveDepth` + testleri
 4. Sahne motoru: `buildScene`, `particulate`, `rays`, `kelp`, `water`
 5. `DiveScroll` + `DepthGauge`
 6. `WordCycle`, `HomeView`/`WikiView` uyumu
