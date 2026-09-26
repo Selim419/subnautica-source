@@ -237,7 +237,7 @@ describe('biomes', () => {
     for (const b of BIOMES) {
       expect(b).toMatchObject({
         n: expect.stringMatching(/^\d{2}$/),
-        depth: expect.stringMatching(/^\d{3}—\d{4} M$|^\d{4}—\d{4} M$/),
+        depth: expect.stringMatching(/^\d{3,4}—\d{3,4} M$/),
         index: expect.any(String),
         name: expect.any(String),
         original: expect.any(String),
