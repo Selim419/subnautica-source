@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { AnimatePresence, motion, useScroll, useSpring } from 'motion/react'
-import { TextRoll } from './skiper58.jsx'
+import { WordCycle } from './components/WordCycle.jsx'
 import HomeView from './HomeView.jsx'
 import WikiView from './WikiView.jsx'
 // Cascade order matters: the token and type layers define the custom properties
@@ -40,8 +40,8 @@ function App() {
     <header className="site-header">
       <button className="logo" onClick={goHome} aria-label="Ana sayfa">SUB<span>NAUTICA</span><i /></button>
       <nav className={`main-nav ${menuOpen ? 'open' : ''}`} aria-label="Ana menü">
-        <button className={route === 'home' ? 'nav-active' : ''} onClick={goHome}><TextRoll>KEŞİF</TextRoll></button>
-        <button className={route === 'wiki' ? 'nav-active' : ''} onClick={goWiki}><TextRoll>WIKI / VERİ BANKASI</TextRoll></button>
+        <button className={route === 'home' ? 'nav-active' : ''} onClick={goHome}><WordCycle>KEŞİF</WordCycle></button>
+        <button className={route === 'wiki' ? 'nav-active' : ''} onClick={goWiki}><WordCycle>WIKI / VERİ BANKASI</WordCycle></button>
 
       </nav>
       <div className="header-right"><span className="signal-dot" /><span>4546B SİNYALİ</span><button className="menu-toggle" type="button" aria-expanded={menuOpen} aria-label={menuOpen ? 'Menüyü kapat' : 'Menüyü aç'} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? '×' : '☰'}</button></div>
@@ -50,7 +50,7 @@ function App() {
       {route === 'wiki' ? <motion.div key="wiki" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .28 }}><WikiView /></motion.div>
         : <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .28 }}><HomeView onWiki={goWiki} /></motion.div>}
     </AnimatePresence>
-    <footer className="footer"><div className="footer-main"><span className="footer-brand">SUB<span>NAUTICA</span></span><p>Derinlikleri keşfet. Kaydı açık tut.</p><a href="https://unknownworlds.com/en/games" target="_blank" rel="noreferrer">UNKNOWN WORLDS ↗</a></div><div className="footer-bottom"><span>HAYRAN YAPIMI ÖRNEK · RESMÎ SUBNAUTICA SİTESİ DEĞİLDİR.</span><span>OYUN BİLGİLERİ: <a href="https://subnautica.fandom.com/wiki/Subnautica_Wiki" target="_blank" rel="noreferrer">SUBNAUTICA WIKI</a> · GÖRSELLER: ÖZGÜN KONSEPT ÇALIŞMALARI</span><span>ARAYÜZ: <a href="https://skiper-ui.com/v1/skiper58" target="_blank" rel="noreferrer">SKIPER UI</a> · MOTION.DEV · ANIME.JS · THREE.JS</span></div></footer>
+    <footer className="footer"><div className="footer-main"><span className="footer-brand">SUB<span>NAUTICA</span></span><p>Derinlikleri keşfet. Kaydı açık tut.</p><a href="https://unknownworlds.com/en/games" target="_blank" rel="noreferrer">UNKNOWN WORLDS ↗</a></div><div className="footer-bottom"><span>HAYRAN YAPIMI ÖRNEK · RESMÎ SUBNAUTICA SİTESİ DEĞİLDİR.</span><span>OYUN BİLGİLERİ: <a href="https://subnautica.fandom.com/wiki/Subnautica_Wiki" target="_blank" rel="noreferrer">SUBNAUTICA WIKI</a> · GÖRSELLER: ÖZGÜN KONSEPT ÇALIŞMALARI</span><span>MOTION.DEV · ANIME.JS · THREE.JS</span></div></footer>
   </>
 }
 

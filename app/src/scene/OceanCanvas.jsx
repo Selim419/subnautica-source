@@ -23,6 +23,10 @@ export default function OceanCanvas({ frameRef, regimeIndex, visible }) {
     apiRef.current = api
 
     const box = () => {
+      // A ResizeObserver can still deliver one queued notification just after
+      // disconnect() runs during unmount (e.g. a hash-route change away from
+      // "/"), by which point React has already cleared the ref.
+      if (!holderRef.current) return
       const r = holderRef.current.getBoundingClientRect()
       api.resize(r.width, r.height)
     }

@@ -1,6 +1,5 @@
-import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-const OceanScene = React.lazy(() => import('./OceanScene.jsx'))
 import { categories, wikiEntries } from './wikiData.js'
 
 const asset = (name) => `${import.meta.env.BASE_URL}${name}`
@@ -48,7 +47,7 @@ export default function WikiView() {
   }, [active])
 
   return <main className="wiki-page">
-    <section className="wiki-hero"><Suspense fallback={null}><OceanScene /></Suspense><div className="wiki-hero-image" style={{ backgroundImage: `url(${asset('kelp-forest.webp')})` }} /><div className="wiki-hero-shade" /><div className="wiki-hero-inner"><span className="section-kicker">4546B / PDA VERİ BANKASI</span><h1>OKYANUSUN<br /><em>ARŞİVİ.</em></h1><p>Orijinal Subnautica’nın biyomları, canlıları ve araçları için kısa bir saha rehberi. Aradığın kaydı seç; ayrıntıları ve kaynağını aç.</p><div className="wiki-hero-count"><b>{String(wikiEntries.length).padStart(2, '0')}</b><span>KATALOG<br />KAYDI</span></div></div></section>
+    <section className="wiki-hero"><div className="wiki-hero-image" style={{ backgroundImage: `url(${asset('ocean-hero.webp')})` }} /><div className="wiki-hero-shade" /><div className="wiki-hero-inner"><span className="section-kicker">4546B / PDA VERİ BANKASI</span><h1>OKYANUSUN<br /><em>ARŞİVİ.</em></h1><p>Orijinal Subnautica’nın biyomları, canlıları ve araçları için kısa bir saha rehberi. Aradığın kaydı seç; ayrıntıları ve kaynağını aç.</p><div className="wiki-hero-count"><b>{String(wikiEntries.length).padStart(2, '0')}</b><span>KATALOG<br />KAYDI</span></div></div></section>
     <section className="database" aria-labelledby="database-title"><div className="database-heading"><div><span className="section-kicker">PDA / KAYIT ARAMA</span><h2 id="database-title">VERİ BANKASI</h2></div><span className="database-count">{filtered.length} / {wikiEntries.length} KAYIT GÖSTERİLİYOR</span></div>
       <div className="database-tools"><label className="searchbox"><span aria-hidden="true">⌕</span><span className="sr-only">Kayıtlarda ara</span><input type="search" placeholder="Biyom, canlı veya araç ara..." value={query} onChange={(e) => setQuery(e.target.value)} /></label><div className="filters" role="group" aria-label="Kayıt kategorisi">{categories.map((item) => <button key={item} className={category === item ? 'active' : ''} onClick={() => setCategory(item)} aria-pressed={category === item}>{item}</button>)}</div></div>
       <div className="database-subbar"><label className="spoiler-control"><input type="checkbox" checked={showSpoilers} onChange={(e) => setShowSpoilers(e.target.checked)} /><span className="switch-track" /><span>İleri bölge spoilerlarını göster</span></label><span>SAHA NOTLARI / OYUN İÇİ KAYITLARIN ÖZETİ</span></div>

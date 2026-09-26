@@ -25,7 +25,7 @@ const RAYS = {
       float band = sin((vUv.x + tilt) * 26.0 + uTime * 0.25) * 0.5 + 0.5;
       band = pow(band, 3.0);
       float falloff = 1.0 - smoothstep(0.0, 1.0, vUv.y);
-      float a = band * falloff * uRays * 0.5;
+      float a = band * falloff * uRays * 0.2;
       vec3 col = mix(uLightColor, uWater, vUv.y * 0.6);
       gl_FragColor = vec4(col, a);
     }`,

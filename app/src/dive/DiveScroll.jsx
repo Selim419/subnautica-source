@@ -1,8 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useDiveDepth } from './useDiveDepth.js'
 import { BIOMES } from './biomes.js'
-import OceanCanvas from '../scene/OceanCanvas.jsx'
 import DepthGauge from './DepthGauge.jsx'
+
+// three is a heavy dependency; keep it out of the main chunk. OceanCanvas
+// (and everything it imports: buildScene, the shader modules, three itself)
+// only loads once this component actually mounts it.
+const OceanCanvas = lazy(() => import('../scene/OceanCanvas.jsx'))
 
 const reduced = () =>
   typeof window !== 'undefined' &&
@@ -30,7 +34,9 @@ export default function DiveScroll({ hero }) {
   return (
     <div className="dive-scroll" ref={rootRef}>
       {!isReduced && (
-        <OceanCanvas frameRef={frameRef} regimeIndex={regimeIndex} visible={visible} />
+        <Suspense fallback={null}>
+          <OceanCanvas frameRef={frameRef} regimeIndex={regimeIndex} visible={visible} />
+        </Suspense>
       )}
       {!isReduced && <DepthGauge frameRef={frameRef} subscribe={subscribe} />}
       {hero}

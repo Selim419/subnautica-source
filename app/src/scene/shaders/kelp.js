@@ -36,6 +36,11 @@ const KELP = {
       vec3 col = base * (0.35 + 0.65 * uLight * (0.3 + vT));
       col = mix(col, col * 0.4, uFog * 8.0);
       col += uAccent * uBiolum * pow(vT, 5.0) * 0.55;
+      // Kelp is opaque and occludes the backdrop now (see buildScene's
+      // NormalBlending note), so its own colour is what the reading line
+      // sees wherever a stalk overlaps text - it needs the same readability
+      // ceiling as the water it stands in front of.
+      col = min(col, vec3(0.22));
       gl_FragColor = vec4(col, 1.0);
     }`,
 }

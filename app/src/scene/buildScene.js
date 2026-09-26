@@ -7,7 +7,7 @@ import { REGIMES } from '../dive/regimes.js'
 
 const LERP_MS = 600
 const COLOR_UNIFORMS = new Set(['uWater', 'uLightColor', 'uAccent'])
-const materialOf = (def) => {
+const materialOf = (def, blending = THREE.NormalBlending) => {
   const uniforms = THREE.UniformsUtils.clone(def.uniforms)
   // Shader modules declare color defaults as hex strings (so they stay
   // dependency-free per Task 5's constraint). UniformsUtils.clone() only
@@ -25,7 +25,7 @@ const materialOf = (def) => {
     fragmentShader: def.fragmentShader,
     transparent: true,
     depthWrite: false,
-    blending: THREE.AdditiveBlending,
+    blending,
   })
 }
 
@@ -65,7 +65,14 @@ export function buildScene({ container, forceNoWebGL = false, preserve = false }
   backdrop.position.z = -8
   scene.add(backdrop)
 
-  const godRays = new THREE.Mesh(new THREE.PlaneGeometry(40, 26), materialOf(rays))
+  // Rays glow additively over the backdrop (that is the correct look for a
+  // light shaft), but kelp is a solid, opaque plant in front of the water: it
+  // must occlude what is behind it, not add its own colour on top. Additive
+  // blending on an opaque layer was quietly summing water + rays + kelp +
+  // particulate at every overlapping pixel, which is what pushed the
+  // near-surface daylight regime to a washed-out white the contrast gate
+  // (spec 6.4/7) correctly caught - not a colour problem, a compositing one.
+  const godRays = new THREE.Mesh(new THREE.PlaneGeometry(40, 26), materialOf(rays, THREE.AdditiveBlending))
   godRays.position.z = -5
   scene.add(godRays)
 
@@ -96,7 +103,7 @@ export function buildScene({ container, forceNoWebGL = false, preserve = false }
   const pGeo = new THREE.BufferGeometry()
   pGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
   pGeo.setAttribute('aSize', new THREE.BufferAttribute(size, 1))
-  const points = new THREE.Points(pGeo, materialOf(particulate))
+  const points = new THREE.Points(pGeo, materialOf(particulate, THREE.AdditiveBlending))
   scene.add(points)
 
   const materials = [backdrop.material, godRays.material, kelpMesh.material, points.material]

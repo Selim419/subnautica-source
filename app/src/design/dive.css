@@ -27,9 +27,9 @@
 
 .dive-scrim { position: absolute; inset: 0; pointer-events: none;
   background: linear-gradient(100deg,
-    color-mix(in srgb, var(--abyss) 88%, transparent) 0%,
-    color-mix(in srgb, var(--abyss) 62%, transparent) 34%,
-    color-mix(in srgb, var(--abyss) 0%, transparent) 72%); }
+    color-mix(in srgb, var(--abyss) 92%, transparent) 0%,
+    color-mix(in srgb, var(--abyss) 78%, transparent) 34%,
+    color-mix(in srgb, var(--abyss) 45%, transparent) 72%); }
 
 .dive-section-inner { position: relative; z-index: 1;
   max-width: min(58ch, 62%); min-width: 0; }
@@ -74,9 +74,9 @@
   .dive-section { min-height: 120vh; padding: var(--space-6) var(--space-4); }
   .dive-section-inner { max-width: 100%; }
   .dive-scrim { background: linear-gradient(180deg,
-    color-mix(in srgb, var(--abyss) 90%, transparent) 0%,
-    color-mix(in srgb, var(--abyss) 55%, transparent) 60%,
-    color-mix(in srgb, var(--abyss) 15%, transparent) 100%); }
+    color-mix(in srgb, var(--abyss) 93%, transparent) 0%,
+    color-mix(in srgb, var(--abyss) 70%, transparent) 60%,
+    color-mix(in srgb, var(--abyss) 45%, transparent) 100%); }
   .depth-gauge { display: none; }
 }
 @media (max-width: 600px) {

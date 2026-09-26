@@ -1,20 +1,19 @@
 /* The landing hero and the strip directly beneath it.
-   Owns: .hero and its layers, .ocean-canvas, h1 word treatments, .hero-rail,
+   Owns: .hero and its layers, .ocean-canvas, h1 word treatments,
    .scroll-cue, .ticker and the @keyframes marquee it animates, plus the
    .button-primary/.button-ghost pair used by the hero actions. */
 
 .hero{height:100svh;min-height:720px;position:relative;isolation:isolate;overflow:hidden;background:var(--deep)}
 
-.hero-image{position:absolute;inset:-5% 0;background-size:cover;background-position:center 48%;z-index:-3;will-change:transform}
-
 .ocean-canvas{position:absolute;inset:0;pointer-events:none;z-index:-1}
 
 .ocean-canvas canvas{display:block;width:100%;height:100%}
 
-/* Every stop in this stack is one hue at one alpha. The alphas are the design
-   decision and are kept exactly; the twenty near-identical dark teals the
-   literals used to carry are not, so each stop is a color-mix() of --abyss. */
-.hero-vignette{position:absolute;inset:0;z-index:-2;background:linear-gradient(90deg,color-mix(in srgb,var(--abyss) 94%,transparent) 0%,color-mix(in srgb,var(--abyss) 60%,transparent) 45%,color-mix(in srgb,var(--abyss) 7%,transparent) 80%),linear-gradient(180deg,color-mix(in srgb,var(--abyss) 45%,transparent),transparent 23%,color-mix(in srgb,var(--abyss) 10%,transparent) 58%,var(--abyss) 100%)}
+/* The hero's own scrim, so the heading reads before the WebGL scene finishes
+   its first paint. It sits above .ocean-canvas (z-index 0 in dive.css) and
+   below .hero-inner, at the same one-hue color-mix() of --abyss the rest of
+   the site's scrims use. */
+.hero-vignette{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(120% 90% at 50% 0%,color-mix(in srgb,var(--abyss) 0%,transparent) 30%,color-mix(in srgb,var(--abyss) 78%,transparent) 100%)}
 
 .hero-inner{width:min(1380px,calc(100% - 68px));height:100%;margin:auto;padding-top:76px;display:flex;flex-direction:column;justify-content:center;position:relative;z-index:3}
 
@@ -67,17 +66,6 @@
 
 .button-ghost:hover{background:color-mix(in srgb,var(--glow) 14%,transparent)}
 
-/* The rail is a depth gauge: both its labels are figures (01 / 03, DERİNLİK
-   000 M), so both are mono, and at 500 because on this element the number IS
-   the content. Set on the spans, not on .hero-rail, which also holds the rule. */
-.hero-rail{position:absolute;right:max(34px,calc((100vw - 1380px)/2));top:26%;bottom:21%;display:flex;align-items:center;gap:15px;writing-mode:vertical-rl;color:var(--ink-muted);font-size:var(--text-micro);letter-spacing:.15em;z-index:4}
-
-.hero-rail span{font-family:var(--font-mono);font-weight:500}
-
-.rail-line{width:1px;flex:1;background:var(--hairline-firm);position:relative}
-
-.rail-line i{position:absolute;top:0;left:-2px;width:5px;height:40%;background:var(--glow);box-shadow:0 0 18px var(--glow)}
-
 .scroll-cue{position:absolute;left:max(34px,calc((100vw - 1380px)/2));bottom:30px;display:flex;align-items:center;gap:14px;font-size:var(--text-micro);letter-spacing:var(--tracking-wider);z-index:4}
 
 .scroll-cue div{height:1px;width:75px;background:var(--glow)}
@@ -90,11 +78,11 @@
 
 @keyframes marquee{to{transform:translateX(-50%)}}
 
-@media(max-width:1160px){.hero h1{font-size:clamp(4.7rem,9.5vw,8.5rem)}.hero-rail{display:none}.hero-bottom{display:block}.hero-actions{margin-top:var(--space-5)}}
+@media(max-width:1160px){.hero h1{font-size:clamp(4.7rem,9.5vw,8.5rem)}.hero-bottom{display:block}.hero-actions{margin-top:var(--space-5)}}
 
 @media(max-width:850px){.hero-inner{width:calc(100% - 48px)}.hero-coord{display:none}}
 
-@media(max-width:600px){.hero{min-height:700px}.hero-image{background-position:60% center}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:var(--leading-heading)}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:var(--text-micro);padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
+@media(max-width:600px){.hero{min-height:700px}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:var(--leading-heading)}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:var(--text-micro);padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
 
 /* The small-tablet rung (601-768), from the ladder in tokens.css. 768 had no
    overflow to fix and the measure measurements say so, so this block is the
@@ -110,5 +98,3 @@
    compact tier's 700px is left alone: at 320-414 the type is smaller and
    700px is what it takes. */
 @media(min-width:601px) and (max-width:768px){.hero{min-height:640px}}
-
-@media(prefers-reduced-motion:reduce){.hero-image{transform:none!important}}
