@@ -27,8 +27,8 @@ export const BIOMES = [
     n: '04', id: 'lost-river', regime: 'deep', from: 525, to: 1065,
     depth: '525—1065 M', index: 'DERİNLİK',
     name: 'Kayıp Nehir', original: 'LOST RIVER',
-    line: 'Bazı yollar geri dönülmez.',
-    text: 'Mineral kaya yüzeyleri ve fosil yatakları arasında ilerle. Buradaki her iz, senden önce buraya inen birinin bıraktığı izdir.',
+    line: 'Bazı yollar yalnızca aşağı iner.',
+    text: 'Fosillerin ve tuzlu akıntıların içinden geç. Burada ışığın yerini bilinmeyen alır.',
     accent: 'var(--bathyal)', glow: '#3f7ad9', wiki: 'lost-river',
   },
   {

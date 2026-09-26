@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { BIOMES } from './biomes.js'
 import { REGIMES } from './regimes.js'
+import { wikiEntries } from '../wikiData.js'
 
-const wikiIds = ['safe-shallows', 'kelp-forest', 'grand-reef', 'lost-river',
-  'peeper', 'stalker', 'reaper', 'seamoth', 'prawn', 'cyclops']
+const wikiIds = wikiEntries.map((e) => e.id)
 
 describe('biomes', () => {
   it('has exactly six rows', () => {
@@ -44,6 +44,7 @@ describe('biomes', () => {
     for (const b of BIOMES) {
       expect(b).toMatchObject({
         n: expect.stringMatching(/^\d{2}$/),
+        id: expect.stringMatching(/^[a-z][a-z0-9-]*$/),
         depth: expect.stringMatching(/^\d{3,4}—\d{3,4} M$/),
         index: expect.any(String),
         name: expect.any(String),
