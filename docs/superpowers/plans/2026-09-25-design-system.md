@@ -6,7 +6,7 @@
 
 **Architecture:** `style.css` (one file, 290 classes, 21 KB, 81 hex literals of which only 4 are token declarations) splits into `src/design/` — `tokens.css` (three layers: raw palette, per-regime semantics, measure), `type.css` (`@font-face` plus the type scale), `layout.css` (grid, section rhythm, breakpoints) — plus per-component files. The split and the token migration are separate tasks so the split is verifiable as a pixel-identical move before any colour changes. `readTokens.js` reads layer one into JS so the Phase 2 scene shaders can consume the same palette.
 
-**Tech Stack:** Vite 6, React 19, IBM Plex (self-hosted, OFL 1.1), Chrome DevTools Protocol for verification (no dependencies — Node 22+ ships a global `WebSocket`).
+**Tech Stack:** Vite 6, React 19, IBM Plex subsets self-hosted as `Selim Sans` / `Selim Sans Condensed` / `Selim Mono` (OFL 1.1, renamed off the Reserved Font Name), Chrome DevTools Protocol for verification (no dependencies — Node 22+ ships a global `WebSocket`).
 
 **Plan:** 1 of 2 in Phase 2. Plan 2B (`dive-spine`) adds `regimes.js`, `useDiveDepth`, the procedural Three.js scene, `DiveScroll` and `DepthGauge` on top of this token system.
 
@@ -48,8 +48,9 @@ Measured on 2026-09-25 against the live site with the CDP harness. This is the "
 |---|---|
 | `app/scripts/visual-check.mjs` | CDP harness. Measures overflow, wrapping and resolved font families at given widths; optionally writes full-page and fold screenshots |
 | `app/scripts/page-probe.js` | The in-page measurement script, read and sent to `Runtime.evaluate` so no escaping bugs live in a template literal |
-| `app/public/fonts/*.woff2` | IBM Plex Sans, Sans Condensed, Mono — latin + latin-ext |
+| `app/public/fonts/*.woff2` | **12 files**: three families × two weights each × two subsets (`latin`, `latin-ext`) — see Task 2 |
 | `app/public/fonts/OFL.txt` | SIL Open Font License 1.1. Required: OFL obliges shipping the licence with the fonts |
+| `app/public/fonts/README.md` | Provenance for the font directory: upstream source and tag, the OFL, and why the internal names are **not** "IBM Plex" |
 | `app/src/design/tokens.css` | Layer 1 raw palette, layer 2 per-regime semantics, layer 3 measure |
 | `app/src/design/type.css` | `@font-face`, type scale, measure |
 | `app/src/design/layout.css` | Grid, section rhythm, the four breakpoints |
@@ -192,11 +193,12 @@ git commit -m "Add a dependency-free CDP harness and record the design baseline"
 
 ---
 
-## Task 2: Fetch IBM Plex, self-hosted
+## Task 2: Vendor the fonts, self-hosted
 
 **Files:**
-- Create: `app/public/fonts/*.woff2` (six files: three families × two subsets)
+- Create: `app/public/fonts/*.woff2` — **12 files: six weights × two subsets** (not six; see below)
 - Create: `app/public/fonts/OFL.txt`
+- Create: `app/public/fonts/README.md` (provenance, and why the internal names are renamed)
 
 **Interfaces:**
 - Consumes: nothing
@@ -204,13 +206,32 @@ git commit -m "Add a dependency-free CDP harness and record the design baseline"
 
 - [ ] **Step 1: Get the font files and the licence**
 
-Download from IBM's official distribution (`https://github.com/IBM/plex`, SIL Open Font
-License 1.1). Take the `woff2` variants, and take **both** the `latin` and `latin-ext`
-subsets for each of the three families:
+Take IBM's official `v6.4.2` full-family **TTF** statics and subset them locally with
+fontTools (`pyftsubset --flavor=woff2`). Do not take the CDN's woff2: Google serves one
+*variable* file per family for Sans but *per-weight* files for Condensed and Mono, so the CDN
+cannot give a uniform per-weight × per-subset set, and IBM's own `fonts/split/woff2/` uses
+`Latin1 / Latin2 / Latin3 / Pi` rather than `latin` / `latin-ext` and has no single pair
+covering the whole site. The six weights, each in **both** subsets:
 
-- `IBM Plex Sans` — Regular 400, SemiBold 600
-- `IBM Plex Sans Condensed` — Medium 500, SemiBold 600
-- `IBM Plex Mono` — Regular 400, Medium 500
+| family | weights | files |
+|---|---|---|
+| IBM Plex Sans | 400 Regular, 600 SemiBold | `selim-sans-{400,600}-{latin,latin-ext}.woff2` |
+| IBM Plex Sans Condensed | 500 Medium, 600 SemiBold | `selim-sans-condensed-{500,600}-{latin,latin-ext}.woff2` |
+| IBM Plex Mono | 400 Regular, 500 Medium | `selim-mono-{400,500}-{latin,latin-ext}.woff2` |
+
+**That is 12 files, not 6.** A weight-less filename such as
+`selim-sans-condensed-latin-ext.woff2` does not exist and will 404 — no such artifact is a
+single variable font covering all weights, and neither Condensed nor Mono is published that
+way. Every `@font-face` `src` and every preload `href` must name the **weight and the subset**.
+
+**The shipped families are named `Selim Sans`, `Selim Sans Condensed` and `Selim Mono`, not
+`IBM Plex …`.** IBM Plex is OFL 1.1 **with a Reserved Font Name** (`"Plex"`, declared in
+`OFL.txt`), and clause 3 forbids a Modified Version — a subset is one — from using it. The
+subsets therefore carry rewritten `name` IDs 1/2/3/4/5/6/16/17. Copyright (ID 0) and trademark
+(ID 7) notices stay verbatim, because OFL requires them in every copy. Task 4 must declare the
+`Selim …` names; nothing installed on a user's machine is called `Selim Sans`, so declaring the
+IBM names would silently fall back to a system font. `app/public/fonts/README.md` records all
+of this so nobody "fixes" the names back.
 
 Save as `app/public/fonts/`. Also save the licence text as `app/public/fonts/OFL.txt`.
 
@@ -221,12 +242,27 @@ catches this.
 
 - [ ] **Step 2: Verify the Turkish glyphs are present**
 
+Check `ğ ğ ş Ş ı İ i I ç Ç ö Ö ü Ü` per **family and weight**, against the *pair* of subsets,
+not against `latin-ext` alone: the six codepoints above U+00FF (`ğ ğ ş Ş ı İ`) can only come
+from `latin-ext`, the other eight from `latin`. Both files together must cover all fourteen.
+
 The licence obliges shipping `OFL.txt`; skip it and the publication is a licence violation.
 
 - [ ] **Step 3: Record the file list and sizes**
 
-Report every filename with its byte size. The spec's budget is ~90 KB total; if the actual
-total is materially above it, say so rather than silently shipping a bigger payload.
+Report every filename with its byte size. The real total is **~221 KB** (221 836 B), not the
+spec's old `~90 KB` estimate — that estimate assumed ~15 KB × 6 files, whereas the arithmetic
+is 6 weights × 2 subsets = 12 files at 14–24 KB. The documents have been corrected to state
+the real figure. State the overage rather than silently shipping a bigger payload.
+
+**Because the site's text is Turkish, a browser will typically fetch *both* the `latin` and
+the `latin-ext` file for any face it uses**, so transferred weight is close to the on-disk
+total rather than a fraction of it: Turkish needs `ı İ ğ ğ` (U+0130-0131, U+011E-011F) and
+`ş Ş` (U+015E-015F), which sit above U+0100 and are therefore only in `latin-ext`, while
+`ç ö ü` sit in `latin`. `unicode-range` buys much less on a Turkish site than on an English one.
+This is accepted: the reason is the language, not carelessness. Levers, if the budget ever has
+to be met, in order of least harm: drop `latin-ext` (redundant for today's copy, but it is the
+insurance for future extended copy), or subset `latin` down to the site's actual inventory.
 
 - [ ] **Step 4: Confirm the source is the official one**
 
@@ -237,8 +273,7 @@ not redistributable under OFL without checking its provenance.
 
 ```powershell
 cd C:\Users\selim\subnautica-github-pages
-git add app/public/fonts
-git commit -m "Add self-hosted IBM Plex (Sans, Sans Condensed, Mono) with OFL licence"
+git commit -m "Vendor the fonts, renamed off the OFL Reserved Font Name, with OFL licence"
 ```
 
 ---
@@ -371,22 +406,69 @@ git commit -m "Add the three-layer token system and the reader for the scene sha
 - Modify: `app/index.html` (font preload)
 
 **Interfaces:**
-- Consumes: the woff2 files from Task 2
-- Produces: `--font-display`, `--font-mono`, `--font-body`, and the type scale. Every heading in the site then resolves to `IBM Plex Sans Condensed`.
+- Consumes: the 12 woff2 files from Task 2
+- Produces: `--font-display`, `--font-mono`, `--font-body`, and the type scale. Every heading in the site then resolves to `Selim Sans Condensed`.
 
 - [ ] **Step 1: Write the `@font-face` block**
 
-Three families, `font-display: swap`, `latin-ext` declared **before** `latin` so the more
-specific subset wins for the overlapping ranges. Weights match the spec's table: headings
-500/600, mono 400/500, body 400/600. **No `600-italic` face** — it is not downloaded.
+**Twelve `@font-face` rules — one per file.** Three families, `font-display: swap`, `latin-ext`
+declared **before** `latin` so the more specific subset wins for the overlapping ranges. Weights
+match the spec's table: headings 500/600, mono 400/500, body 400/600. **No `600-italic` face** —
+it is not downloaded.
+
+Declare the **`Selim …` family names**, not the IBM ones: the subsets' internal names were
+rewritten off the OFL Reserved Font Name, and nothing installed on a user's machine is called
+`Selim Sans`, so a `font-family: 'IBM Plex Sans'` declaration would match nothing and fall
+through to the system fallback. (Do not use `local()` sources either — there is no local
+`Selim …` font.)
+
+Each `src` names the **weight and the subset**; there are no weight-less files. The
+`unicode-range` values below are copied verbatim from the Task 2 report and were computed from
+each file's real `cmap`, so the preload and the `@font-face` agree exactly.
+
+`latin-ext`, identical in all six `latin-ext` files:
+
+```css
+unicode-range: U+0100-017F, U+018F, U+0192, U+01A0, U+01A1, U+01AF, U+01B0, U+01CD-01DC,
+  U+01FA-01FF, U+0218-021B, U+0237, U+0259, U+02C7, U+02DD, U+0304, U+0308, U+1E80-1E85,
+  U+1E9E, U+1EF2-1EF9, U+2020, U+20A1, U+20A4, U+20A6, U+20A8-20AB, U+20AD, U+20AE, U+20B1,
+  U+20B2, U+20B4, U+20B5, U+20B8-20BA, U+20BD, U+20BF, U+2113;
+```
+
+`latin`, for Sans 400/600 and Mono 400/500:
+
+```css
+unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+  U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+  U+2000-200D, U+2010-2015, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2028, U+2029,
+  U+202F, U+2030, U+2032, U+2033, U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191,
+  U+2193, U+2197, U+2198, U+2212, U+2215, U+FEFF, U+FFFD;
+```
+
+`latin`, for Condensed 500/600 — the same minus `U+2000-200D`, `U+2010`, `U+2011`, `U+2012`,
+`U+2015`, `U+2028`, `U+2029`, `U+202F`, `U+205F`, `U+FEFF`, `U+FFFD` (the condensed cuts simply
+contain fewer punctuation codepoints):
+
+```css
+unicode-range: U+0000, U+000D, U+0020-007E, U+00A0-00FF, U+011E, U+011F, U+0130, U+0131,
+  U+0152, U+0153, U+015E, U+015F, U+02BB, U+02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308,
+  U+2013, U+2014, U+2018-201A, U+201C-201E, U+2020-2022, U+2026, U+2030, U+2032, U+2033,
+  U+2039, U+203A, U+2044, U+2082, U+20AC, U+2122, U+2191, U+2193, U+2197, U+2198, U+2212,
+  U+2215;
+```
+
+`U+2082 ₂`, `U+2197 ↗` and `U+2198 ↘` are in the `latin` files but in no stock Google range —
+they live in IBM's `Pi` subset. They are kept because the site uses them, and the ranges above
+already account for them. A browser will still fetch both subsets per face, because the text is
+Turkish; see Task 2's note on payload.
 
 - [ ] **Step 2: Add the font tokens and the type scale**
 
 ```css
 :root {
-  --font-display: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, 'Consolas', monospace;
-  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-display: 'Selim Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-mono: 'Selim Mono', ui-monospace, 'Consolas', monospace;
+  --font-body: 'Selim Sans', system-ui, sans-serif;
 }
 ```
 
@@ -396,9 +478,18 @@ Then the scale, using the `--text-*` steps from `tokens.css` and a measure cap o
 - [ ] **Step 3: Preload only the two critical faces in `app/index.html`**
 
 ```html
-<link rel="preload" href="/fonts/ibm-plex-sans-condensed-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/ibm-plex-mono-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${import.meta.env.BASE_URL}fonts/selim-sans-condensed-600-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="${import.meta.env.BASE_URL}fonts/selim-mono-500-latin-ext.woff2" as="font" type="font/woff2" crossorigin>
 ```
+
+Preload the **600 condensed** and the **500 mono** `latin-ext` faces — those are the dominant
+weights in the two families that carry the design, and they are what appears above the fold.
+Both paths carry the weight **and** the subset; the earlier draft's weight-less paths
+(`ibm-plex-sans-condensed-latin-ext.woff2`, `ibm-plex-mono-latin-ext.woff2`) matched no file
+and would have 404'd.
+
+`crossorigin` is required — a font preload without it is fetched twice, because fonts are
+always fetched in CORS mode.
 
 Use `${import.meta.env.BASE_URL}` for the path — the base is `/` for the root site and
 `/subnautica-derinlik-gunlugu/` for the subpath one, and a hardcoded `/fonts/` would 404 on
@@ -416,7 +507,7 @@ acceptable for one commit and is removed in Task 6.
 
 ```powershell
 git add app/src/design/type.css app/index.html
-git commit -m "Add IBM Plex @font-face and the type scale"
+git commit -m "Add the @font-face block and the type scale"
 ```
 
 ---
@@ -491,7 +582,7 @@ git commit -m "Split style.css into design/ by concern, no value changes"
 
 **Interfaces:**
 - Consumes: the tokens from Task 3
-- Produces: **zero hardcoded hex outside `tokens.css`**, and `h1` resolving to `IBM Plex Sans Condensed`.
+- Produces: **zero hardcoded hex outside `tokens.css`**, and `h1` resolving to `Selim Sans Condensed`.
 
 - [ ] **Step 1: Map every hardcoded value to a token before editing anything**
 
@@ -554,7 +645,7 @@ stacks in `tokens.css`/`type.css` — a fallback chain is not a bypass. The grep
 node scripts/visual-check.mjs measure https://selim419.github.io/ 1440:900
 ```
 This still reports `Impact` because the change is not published yet. After Task 8 it must
-report a `font-family` starting with `IBM Plex Sans Condensed`.
+report a `font-family` starting with `Selim Sans Condensed`.
 
 - [ ] **Step 7: Commit**
 
@@ -665,7 +756,7 @@ node scripts/visual-check.mjs measure https://selim419.github.io/ 320:800 375:81
 node scripts/visual-check.mjs measure https://selim419.github.io/subnautica-derinlik-gunlugu/ 320:800 1440:900
 ```
 Expected on both: `overflow: false` at every width, `h1FontFamily` beginning with
-`IBM Plex Sans Condensed`, and `bodyOverflowX: "clip"`. If `h1FontFamily` still says
+`Selim Sans Condensed`, and `bodyOverflowX: "clip"`. If `h1FontFamily` still says
 `Impact`, the deploy served a stale artifact — check the deploy run before re-running anything.
 
 - [ ] **Step 4: Write the after-baseline and diff the two**
@@ -698,7 +789,7 @@ This plan is done when all of these hold:
 3. `grep` finds no `Impact` in any stylesheet or in `app/index.html`, and no `Arial` outside a
    fallback stack in `tokens.css` / `type.css`.
 4. No `font-family` declaration bypasses a `--font-*` token.
-5. The live `h1` resolves to a family starting `IBM Plex Sans Condensed` at all five widths,
+5. The live `h1` resolves to a family starting `Selim Sans Condensed` at all five widths,
    on both sites.
 6. `overflow: false` at 320, 375, 414 and 768 px, on both sites.
 7. `bodyOverflowX` and `htmlOverflowX` are `clip`, not `hidden`.

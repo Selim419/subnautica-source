@@ -66,7 +66,7 @@ her bölümde bir biyom açılır. Bu sırada site kendini oyunun bir aracı gib
 | D4 | Dalış **scroll'a bağlı**; tam ekran dalış oyunu yok | Mobil dostu, mevcut sayfa ritmine uyar, ayrı uygulama maliyeti yok |
 | D5 | Görsel dil **C — Hibrt** | Oyunun kendi karakteri: biyolojik doku + teknik PDA |
 | D6 | Scroll mantığı **5 atmosfer rejimi + 6 biyom anı** | Atmosfer az ve ucuz; biyom fan için anlamlı; Faz 2 haritası bu sınırlara oturur |
-| D7 | Yazı tipi **IBM Plex ailesi, self-host** | Türkçe latin-ext kapsamlı; `--display`'daki `Impact` tasarım dilini öldürüyor |
+| D7 | Yazı tipi **IBM Plex harfleri, self-host** (`Selim Sans` / `Selim Sans Condensed` / `Selim Mono` olarak teslim edilir) | Türkçe latin-ext kapsamlı; `--display`'daki `Impact` tasarım dilini öldürüyor |
 | D8 | `TextRoll` kodu bizim dosyamıza alınır, Skiper atfı kaldırılır | Artık onların kodu kullanılmıyor; kazanılan şey iyi bir fikir |
 | D9 | CI yeşil değilse deploy olmaz | Şu an elle kopyalama var; kırık build canlı siteyi kırar |
 
@@ -184,13 +184,15 @@ olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile birebir tutarlıdır.
 
 | Rol | Aile | Kesim |
 |---|---|---|
-| Başlık | IBM Plex Sans Condensed | 500 / 600 |
-| Teknik etiket, cetvel | IBM Plex Mono | 400 / 500 |
-| Gövde | IBM Plex Sans | 400 / 600 |
+| Başlık | Selim Sans Condensed | 500 / 600 |
+| Teknik etiket, cetvel | Selim Mono | 400 / 500 |
+| Gövde | Selim Sans | 400 / 600 |
 
-- `app/public/fonts/*.woff2` — latin + **latin-ext** altkümesi (Türkçe `ı ğ ş İ ç ö ü`).
-- `@font-face` + `font-display: swap`; yalnızca iki kritik kesim `preload` edilir.
-- Üçüncü taraf isteği yok. Tahmini ~90 KB.
+- `app/public/fonts/*.woff2` — **12 dosya**: 6 ağırlık × 2 alt küme (`latin` + **latin-ext**).
+  Her dosya adında ağırlık **ve** alt küme vardır; ağırlıksız bir dosya yoktur.
+- `@font-face` + `font-display: swap`; yalnızca iki kritik kesim `preload` edilir
+  (`selim-sans-condensed-600-latin-ext.woff2`, `selim-mono-500-latin-ext.woff2`).
+- Üçüncü taraf isteği yok. **Gerçek toplam ~221 KB** (221.836 bayt), tahmini ~90 KB değil.
 - **`Impact` ve `Arial` tamamen kaldırılır.**
 - **`600-italic` kesimi yüklenmez.** Başlıklarda italik yasaktır; vurgu ağırlık ve
   accent rengiyle taşınır. Hero'ın üçüncü satırı (`YERİN ALTINDA.`) romandır ve
@@ -198,10 +200,24 @@ olarak ucuzdur ve Bölüm 2'de onaylanan mockup ile birebir tutarlıdır.
   italik kesimi pakette bulunmaz, yani dosya boyutu da düşer. İtalik yalnızca gövde
   metninde, koşan paragraf içinde vurgu için kullanılabilir.
 
+**Yaklaşık 221 KB neden kabul ediliyor:** Site metni Türkçe olduğu için tarayıcı, kullandığı
+her kesim için **hem `latin` hem `latin-ext` dosyasını** çeker. `ı İ ğ ğ` (U+0130-0131,
+U+011E-011F) ve `ş Ş` (U+015E-015F) U+0100'ün üzerindedir, yalnızca `latin-ext` içindedir;
+`ç ö ü` ise `latin` içindedir. `unicode-range` İngilizce bir sitede kazandığından çok daha az
+kazandırır — aktarılan ağırlık diskteki toplama yakındır. Bu kabul edilmiştir: gerekçesi
+dilin kendisidir, ihmal değil.
+
 **Kaynak ve lisans:** IBM Plex, SIL Open Font License 1.1 ile dağıtılır. Dosyalar
 IBM'in resmi dağıtımından alınır ve `app/public/fonts/OFL.txt` lisans metniyle birlikte
 depoya konur. OFL, lisans metnini pakette bulundurmayı zorunlu kılar — bu adım atlanırsa
 yayın lisans ihlali olur.
+
+**Aile adları neden "IBM Plex" değil:** IBM Plex, OFL 1.1 ile **Rezerve Font Adı** ("Plex")
+dağıtılır. Madde 3, Değiştirilmiş Sürüm'ün (alt küme bir Değiştirilmiş Sürüm'dür) bu adı
+kullanmasını yasaklar. Alt kümeler bu yüzden `Selim Sans` / `Selim Sans Condensed` /
+`Selim Mono` olarak teslim edilir; telif (name ID 0) ve marka (name ID 7) bildirimleri
+OFL'in zorunlu tuttuğu için olduğu gibi bırakılmıştır. Gerekçe `app/public/fonts/README.md`
+dosyasındadır. Bu yüzden CSS'te `IBM Plex …` değil `Selim …` adları bildirilmelidir.
 
 **Alt küme seçimi:** `latin-ext` olmadan `ı` ve `İ` Türkçe metinlerde yanlış glife
 düşer. Yalnızca `latin` altkümesi indirilirse Türkçe site bozulur — her iki alt küme

@@ -89,6 +89,45 @@ Task 3 migrates all 77. Verify against these numbers, not the plan's.
 no sticky positioning to break — but the Phase 2 dive spine will add it, which is why `clip`
 matters.
 
+## Fonts in `app/public/fonts/` (vendored 2026-09-26)
+
+**12 woff2 files — six weights × two subsets — not six.** The names below are the ground truth;
+Task 4's `@font-face` `src` and preload `href` must match them character for character,
+including the weight and the subset. There is no weight-less file: no IBM Plex family ships as
+one variable font covering all weights, so a path like `selim-mono-latin-ext.woff2` does not
+exist and 404s.
+
+| File | Bytes | Family | Weight | Subset |
+|---|---:|---|---:|---|
+| `selim-sans-400-latin.woff2` | 22 460 | Selim Sans | 400 | latin |
+| `selim-sans-400-latin-ext.woff2` | 16 472 | Selim Sans | 400 | latin-ext |
+| `selim-sans-600-latin.woff2` | 23 828 | Selim Sans | 600 | latin |
+| `selim-sans-600-latin-ext.woff2` | 16 748 | Selim Sans | 600 | latin-ext |
+| `selim-sans-condensed-500-latin.woff2` | 21 656 | Selim Sans Condensed | 500 | latin |
+| `selim-sans-condensed-500-latin-ext.woff2` | 16 496 | Selim Sans Condensed | 500 | latin-ext |
+| `selim-sans-condensed-600-latin.woff2` | 21 524 | Selim Sans Condensed | 600 | latin |
+| `selim-sans-condensed-600-latin-ext.woff2` | 16 740 | Selim Sans Condensed | 600 | latin-ext |
+| `selim-mono-400-latin.woff2` | 18 376 | Selim Mono | 400 | latin |
+| `selim-mono-400-latin-ext.woff2` | 14 304 | Selim Mono | 400 | latin-ext |
+| `selim-mono-500-latin.woff2` | 18 812 | Selim Mono | 500 | latin |
+| `selim-mono-500-latin-ext.woff2` | 14 420 | Selim Mono | 500 | latin-ext |
+| **woff2 total** | **221 836 (216.6 KiB)** | | | |
+
+Plus `OFL.txt` (4 360 B) and `README.md` (provenance). **The payload is ~221 KB, not the ~90 KB
+the spec originally estimated** — that estimate assumed ~15 KB × 6 files; the real arithmetic is
+6 weights × 2 subsets = 12 files at 14–24 KB. Because the text is Turkish, a browser typically
+fetches **both** subsets per face, so transfer is close to the on-disk total.
+
+The letterforms are IBM Plex (self-hosted subsets of the `v6.4.2` statics), but the shipped
+family names are **`Selim Sans`, `Selim Sans Condensed`, `Selim Mono`**: IBM Plex is OFL 1.1
+**with a Reserved Font Name**, and a subset is a Modified Version, so clause 3 requires the
+names to change. Task 4 must declare the `Selim …` names — declaring `IBM Plex …` would match
+nothing, because no installed font is called `Selim Sans`. The reasoning, and the two records
+that keep their IBM text on purpose, are in `app/public/fonts/README.md`.
+
+The two faces Task 4 preloads are `selim-sans-condensed-600-latin-ext.woff2` and
+`selim-mono-500-latin-ext.woff2`. No `600-italic` face exists, deliberately.
+
 ## Two detector caveats — do not "fix" a non-bug
 
 1. `button.dive-tab` legitimately occupies two lines (four children lay out as two rows), and
