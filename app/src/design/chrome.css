@@ -36,7 +36,11 @@
 
 .footer{background:var(--deep);border-top:1px solid var(--hairline);padding:var(--space-8) max(34px,calc((100vw - 1380px)/2)) 26px}
 
-.footer-main{display:grid;grid-template-columns:1fr 1fr auto;align-items:center;gap:35px;padding-bottom:60px}
+/* Brand, line and link. minmax(0,1fr) on the two text columns: at 320-414 the
+   footer stacks, and between 601 and 850 the three columns share a 700px
+   measure, where a bare `1fr` would floor at the min-content of "Derinlikleri
+   keşfet. Kayıtlı değil." and set the row's width. */
+.footer-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;align-items:center;gap:35px;padding-bottom:60px}
 
 .footer-brand{font-size:1.4rem;font-weight:900;letter-spacing:.13em}
 
@@ -50,6 +54,19 @@
 
 @media(max-width:1160px){.header-right>span:not(.signal-dot){display:none}}
 
-@media(max-width:850px){.site-header{padding:0 var(--space-5)}.menu-toggle{display:block}.main-nav{position:absolute;top:76px;left:0;right:0;height:auto;display:none;flex-direction:column;align-items:stretch;gap:0;background:var(--deep);border-bottom:1px solid var(--hairline);padding:10px var(--space-5) 20px}.main-nav.open{display:flex}.main-nav button,.main-nav a{min-height:50px;border-bottom:1px solid var(--hairline)}.footer-bottom{flex-wrap:wrap}}
+/* The dropdown is on --surface, not --deep, and the reason is the same one that
+   moved the dive tab off the dive card's plane: this is a raised panel that
+   overlays the page, not a floor. On the dive tab the control took its section's
+   own plane and the panel above it took the next step up; here there is no
+   section, the panel is the whole thing, and it slides over the hero. --deep is
+   the plane of .hero, .dive, .wiki-page and .footer, all of which are full-bleed
+   section floors, so putting an overlay on it made it the fifth rule on one token
+   for a fifth different job.
+
+   The dropdown and the header bar above it are still one visual unit, and that
+   is not what this token is choosing between: the header is a translucent
+   color-mix(--abyss 70%) with an 18px backdrop blur, so it has no plane of its
+   own to share, and the hairline between the two is what joins them. */
+@media(max-width:850px){.site-header{padding:0 var(--space-5)}.menu-toggle{display:block}.main-nav{position:absolute;top:76px;left:0;right:0;height:auto;display:none;flex-direction:column;align-items:stretch;gap:0;background:var(--surface);border-bottom:1px solid var(--hairline);padding:10px var(--space-5) 20px}.main-nav.open{display:flex}.main-nav button,.main-nav a{min-height:50px;border-bottom:1px solid var(--hairline)}.footer-bottom{flex-wrap:wrap}}
 
 @media(max-width:600px){.site-header{height:67px;padding:0 19px}.main-nav{top:67px;padding:10px 19px 20px}.logo{font-size:.96rem}.footer{padding:55px 19px 25px}.footer-main{display:block;padding-bottom:37px}.footer-main p{margin:18px 0 26px}.footer-bottom{display:block}.footer-bottom span{display:block;margin-bottom:13px}}

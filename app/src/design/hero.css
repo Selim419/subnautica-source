@@ -27,7 +27,19 @@
    dotted İ (U+0130) are both inside the Selim Mono latin subset. */
 .hero-coord{color:var(--ink-muted);font-family:var(--font-mono);font-weight:500}
 
-.hero h1{font-family:var(--font-display);font-size:clamp(5.1rem,10.1vw,10.5rem);line-height:.84;font-weight:900;letter-spacing:-.035em;margin:0;text-transform:uppercase;max-width:1300px}
+/* The display heading. `overflow-wrap: break-word`, not the brief's `anywhere`:
+   `anywhere` also lowers the element's min-content size, so it would change how
+   this heading negotiates width inside a grid or flex track, and it breaks
+   mid-word in cases where the word would otherwise have fitted.
+   `break-word` only breaks when a word genuinely cannot fit its line, and
+   leaves intrinsic sizing alone.
+
+   It is here as protection, not as a fix: measured at 320px this h1's
+   scrollWidth and clientWidth are both 282px with its right edge at 301px
+   inside a 320px viewport, so the hero headline does NOT overflow today. The
+   one heading on the site that does overflow is .final-content h2, and it
+   carries the same declaration for the same reason — see dive.css. */
+.hero h1{font-family:var(--font-display);font-size:clamp(5.1rem,10.1vw,10.5rem);line-height:var(--leading-display);font-weight:900;letter-spacing:var(--tracking-display);margin:0;text-transform:uppercase;max-width:1300px;overflow-wrap:break-word}
 
 .hero-word{display:block;white-space:nowrap}
 
@@ -82,6 +94,21 @@
 
 @media(max-width:850px){.hero-inner{width:calc(100% - 48px)}.hero-coord{display:none}}
 
-@media(max-width:600px){.hero{min-height:700px}.hero-image{background-position:60% center}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:.9}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:var(--text-micro);padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
+@media(max-width:600px){.hero{min-height:700px}.hero-image{background-position:60% center}.hero-inner{width:calc(100% - 38px);padding-top:67px}.hero-meta{font-size:.63rem;margin-bottom:26px}.hero h1{font-size:clamp(3.6rem,14vw,5.7rem);line-height:var(--leading-heading)}.hero-word{white-space:normal}.hero-word.aqua{font-size:.93em}.hero-bottom{margin-top:28px}.hero-bottom p{font-size:.96rem}.hero-actions{align-items:stretch;flex-wrap:wrap}.button-primary,.button-ghost{min-height:48px;font-size:var(--text-micro);padding:var(--space-3) 15px}.scroll-cue{left:19px;bottom:25px}.ticker{height:49px;font-size:1.08rem}}
+
+/* The small-tablet rung (601-768), from the ladder in tokens.css. 768 had no
+   overflow to fix and the measure measurements say so, so this block is the
+   vertical rhythm of the band and nothing else: the two things a 768x1024
+   tablet gets wrong when it is handed the wide-screen values.
+
+   `.hero{min-height:720px}` is the one that matters. On a 768-wide tablet in
+   landscape — 768x600, 768x1024 held sideways, an iPad in a split view — a
+   720px floor makes the hero taller than the viewport, so the fold lands on
+   the headline with the subtitle, both buttons and the scroll cue all below
+   it. 640px still clears the headline, the subtitle, the action row and the
+   cue at this width, which is what the 768 fold screenshot shows. The
+   compact tier's 700px is left alone: at 320-414 the type is smaller and
+   700px is what it takes. */
+@media(min-width:601px) and (max-width:768px){.hero{min-height:640px}}
 
 @media(prefers-reduced-motion:reduce){.hero-image{transform:none!important}}

@@ -6,10 +6,29 @@
     <meta name="theme-color" content="#07161e" />
     <meta name="description" content="Subnautica için sinematik keşif deneyimi ve kaynaklı hayran wikisi." />
     <title>Subnautica • Derinliklerin Ötesinde</title>
-    <!-- The mono preload names the latin cut, which is what the coordinate,
-         depth and stat readouts render in; the latin-ext cut was never reached.
-         See the Selim Mono block in src/design/type.css. -->
-    <link rel="preload" href="%BASE_URL%fonts/selim-sans-condensed-600-latin-ext.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- One preload, and it names a file that is genuinely rendered. The mono
+         latin cut is what the coordinate, depth and stat readouts draw.
+
+         The condensed 600 latin-ext preload that used to sit here was 16,740
+         bytes fetched on every visit and never drawn with, and it was measured
+         rather than assumed. With the preload removed and the cache disabled,
+         a cold load of BOTH routes requests selim-sans-condensed-600-latin.woff2
+         via the CSS parser and never requests the latin-ext file at all. The
+         reason is coverage: the condensed latin cut's declared unicode-range
+         already includes U+011E/011F (ğĞ), U+0130/0131 (İı) and U+015E/015F
+         (şŞ) — U+00A0-00FF covers çöüÇÖÜ, and the same range declares U+2082,
+         U+2191, U+2193, U+2197 and U+2198 — so every codepoint the display
+         face needs is served by the latin file. fontTools 4.57.0 against the
+         two cmaps agrees: the latin file carries all of them, and the latin-ext
+         file carries only the six Turkish letters and none of ç ö ü ₂ ↗ ↓ °.
+         CDP CSS.getPlatformFontsForNode confirms it at the renderer: all 29
+         glyphs of the hero h1, İ and Ğ and ş included, come from one face,
+         SelimSansCondensed-SemiBold, with no fallback family in the list.
+
+         The @font-face rule for the latin-ext cut is KEPT. It costs nothing
+         when nothing selects it, and it is the correct declaration for the
+         subset if a heading ever needs a codepoint outside the latin range.
+         See the Selim Sans Condensed block in src/design/type.css. -->
     <link rel="preload" href="%BASE_URL%fonts/selim-mono-500-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307161e'/%3E%3Ccircle cx='32' cy='32' r='19' fill='none' stroke='%235ce8db' stroke-width='4'/%3E%3Ccircle cx='32' cy='32' r='7' fill='%235ce8db'/%3E%3C/svg%3E" />
   </head>

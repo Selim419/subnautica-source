@@ -89,7 +89,31 @@
    The condensed latin cuts carry 23 fewer punctuation codepoints than the Sans
    and Mono cuts (235 against 258), so they get their own range. Verified
    against the files, not assumed: the 23 are U+2000-200D, U+2010-2012, U+2015,
-   U+2028, U+2029, U+202F, U+FEFF and U+FFFD. */
+   U+2028, U+2029, U+202F, U+FEFF and U+FFFD.
+
+   A LATIN-EXT CUT IN THIS FAMILY IS PRELOAD-ONLY, and that is measured. The
+   condensed latin range below already declares U+011E/011F (ğĞ), U+0130/0131
+   (İı), U+0152/0153 (Œœ) and U+015E/015F (şŞ) alongside U+00A0-00FF, exactly
+   as the Selim Sans latin cut does, so the Turkish letters the display face
+   needs are all served by the latin file and the latin-ext file is never
+   selected. fontTools 4.57.0 confirms it from the other direction: the latin
+   cmap carries ğ Ğ İ ı ş Ş ç ö ü Ç Ö Ü ₂ ↗ ↓ °, and the latin-ext cmap
+   carries only the six Turkish letters and none of the rest. The preload for
+   selim-sans-condensed-600-latin-ext.woff2 was removed from index.html on that
+   evidence; the @font-face rules stay, because a rule nothing selects costs
+   nothing and is the right declaration if that ever changes.
+
+   ONE INCONSISTENCY, recorded and not fixed here. The 500 latin rule's range
+   is the one range in the file that does NOT declare the six Turkish letters,
+   where the 600 rule directly above it does. So a 500-weight condensed setting
+   carrying İ or ş or ğ has no Selim face whose declared range covers it. It
+   renders correctly today — measured at the renderer, Ş and İ at weight 500
+   both come back as SelimSansCondensed-Medium with no fallback family — but
+   that is the browser reaching for the only loaded face in the family, not the
+   declaration asking for it, and it is one edit away from a visible fallback.
+   The only 500-weight condensed element is .ticker, so the blast radius is one
+   marquee. Widening the range would pull selim-sans-condensed-500-latin-ext
+   into the download, so it is a payload decision and not a task-7 decision. */
 
 @font-face {
   font-family: 'Selim Sans Condensed';
@@ -212,46 +236,84 @@
    a leading and the body family all genuinely belong to one sentence. */
 
 :root {
-  /* Sizes. The bottom four are for text set at a size, and the top two are the
-     display steps. */
+  /* Sizes. The bottom four are for text set at a size, and the top one is the
+     display step.
+
+     --text-display was capped at 7rem, which was a claim about the design that
+     the site contradicted: the display type actually reaches 10.5rem (.hero h1
+     at >=1160px, .manifesto h2 and .final-content h2 at 10rem, .wiki-hero h1 at
+     9rem). A scale whose top step cannot express the largest type on the site
+     is not a display scale. The cap is now 10.5rem, so the step spans the real
+     range — the site's condensed headings run from 2.1rem (.wiki-card h3) to
+     10.5rem — and the 8.5vw midpoint is the slope the site's own display
+     clamps cluster around (.hero h1 is 10.1vw, .final-content h2 10vw,
+     .wiki-hero h1 and .manifesto h2 9vw, .section-heading h2 7.2vw).
+
+     --text-h3 is gone. Nothing on the site is set at a size it equals, and a
+     step that names a role no element fills is the unbacked claim this ramp
+     exists to stop carrying. */
   --text-micro:   0.6875rem;                 /* 11px — uppercase micro labels */
   --text-small:   0.8125rem;                 /* 13px — small UI copy         */
   --text-body:    1rem;                      /* 16px — running text          */
   --text-lead:    1.1875rem;                 /* 19px — an introduction       */
-  --text-h3:      clamp(1.5rem, 2.4vw, 2rem);
-  --text-display: clamp(2.75rem, 8.5vw, 7rem);
+  --text-display: clamp(2.75rem, 8.5vw, 10.5rem);
 
   /* Leading, as a unitless ratio so it survives a size change. Two settings for
      type that is set large and tight, one for running text, and one looser step
      for the lead paragraph, which is roughly half a measure wide and reads as an
-     introduction rather than as body copy. */
-  --leading-tight: 0.86;   /* display setting, several lines deep   */
-  --leading-snug:  0.98;   /* headings                            */
-  --leading-body:  1.65;   /* running text                         */
-  --leading-prose: 1.55;   /* the lead paragraph, half-measure wide */
+     introduction rather than as body copy.
+
+     The display end was one step at 0.86, which is not a number anything on the
+     site is set at, and the display leading is in fact a ramp: .78, .84, .85,
+     .90, .92, .94 across six rules. The two steps below are the two values that
+     carry the site's real display weight — .84 on the three largest settings
+     (.hero h1, .manifesto h2, .wiki-hero h1) and .90 on the section and
+     database headings and on the compact-tier hero — and both are applied. The
+     other four (.78 on the catalog count, .85, .92, .94) are not steps, because
+     a step is a value the scale holds, not a value it should have held: making
+     them steps would be inventing four rungs to match four literals, which is
+     the failure mode this file is written against. They stay literals and are
+     listed in each rule. */
+  --leading-display: 0.84;   /* the three largest display settings        */
+  --leading-heading:  0.90;   /* section and database headings            */
+  --leading-body:     1.65;   /* running text                              */
+  --leading-prose:    1.55;   /* the lead paragraph, half-measure wide     */
 
   /* Tracking. Negative on the condensed display and heading settings, which are
      set tight and gain apparent space from it; zero for running text, where
      tracking only hurts legibility; positive and wide on the uppercase micro
-     labels, which need the letterspacing to read as a label at all. */
-  --tracking-tight: -0.03em;
-  --tracking-snug:  -0.015em;
+     labels, which need the letterspacing to read as a label at all.
+
+     The display end is three steps and all three are applied, in order of how
+     tight they get: -0.035em on the hero headline, which is the largest type on
+     the site and the only setting where a slightly tighter fit matters; -0.03em
+     on the other display settings; -0.02em on the section headings. The old
+     --tracking-snug at -0.015em was a fourth step between two of these that
+     nothing was set at, and it is deleted rather than left as a claim. */
+  --tracking-display: -0.035em;
+  --tracking-tight:   -0.03em;
+  --tracking-heading: -0.02em;
   --tracking-normal: 0;
   --tracking-wide:   0.12em;
   --tracking-wider:  0.18em;
 }
 
-/* Five of these fifteen steps have no consumer today, and the measurement that
-   explains each is in task-6c-report.md. In short: the site's headings run from
-   2rem to 10.5rem, so the two display size steps are below the whole range; and
-   the display leading is not one value but six, from .78 to .94, so neither
-   --leading-tight nor --leading-snug is a step anything actually sits on. They
-   are kept because a scale that has been cut to today's consumers is a scale
-   that cannot be used tomorrow, and the rule this file follows is that a step
-   earns its place by naming a role — not by being reached for on the day it is
-   written. The rule that was NOT followed, and should not be, is inventing
-   steps to absorb every literal: 102 literals in the five component files are
-   left as literals precisely because no step in the scale is their value. */
+/* Every step above now has at least one consumer, and the map is short enough to
+   check by eye: sizes micro/small/body/lead on labels, controls and copy;
+   display on the token's own range (see above). Leading display on .hero h1,
+ * .manifesto h2 and .wiki-hero h1; heading on .section-heading h2,
+   .database-heading h2 and the compact-tier .hero h1; body on running text;
+   prose on the half-measure lead paragraph. Tracking display on .hero h1;
+   tight on .manifesto h2, .final-content h2 and .wiki-hero h1; heading on
+   .section-heading h2 and .database-heading h2; normal on .spoiler-control;
+   wide on the logo, the buttons and .record-data; wider on .section-kicker and
+   .scroll-cue.
+
+   The literals that remain are 99 declarations in the five component files, and
+   the rule this file follows is that a step earns its place by naming a role
+   something fills — not by being reached for on the day it is written, and not
+   by being invented to absorb a literal. The 102 literals left as literals are
+   left because no step in the scale is their value. */
 
 /* The two measure tokens, --measure-body and --measure-lead, are gone with the
    rest of this block's predecessor. Neither the base nor the lead paragraph is

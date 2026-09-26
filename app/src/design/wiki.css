@@ -45,7 +45,7 @@
 
 .wiki-hero-inner{width:min(1380px,calc(100% - 68px));margin:auto;padding-top:174px;position:relative;z-index:2}
 
-.wiki-hero h1{font-family:var(--font-display);font-size:clamp(4.8rem,9vw,9rem);line-height:.84;letter-spacing:var(--tracking-tight);margin:var(--space-5) 0 18px}
+.wiki-hero h1{font-family:var(--font-display);font-size:clamp(4.8rem,9vw,9rem);line-height:var(--leading-display);letter-spacing:var(--tracking-tight);margin:var(--space-5) 0 18px;overflow-wrap:break-word}
 
 .wiki-hero h1 em{font-style:normal;color:var(--glow)}
 
@@ -105,6 +105,11 @@
 
 .spoiler-control input:focus-visible+.switch-track{outline:2px solid var(--glow);outline-offset:4px}
 
+/* The card grid is the one place on this route where a bare `1fr` bit: a track
+   floors at min-content, and a card carries an art well, a Turkish card title
+   and a two-column stat row. All three columns are minmax(0,1fr) at every
+   count, which is what keeps a long card name from widening the grid past the
+   viewport instead of wrapping inside its own track. */
 .wiki-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4)}
 
 .wiki-card{border:1px solid var(--hairline);background:var(--surface);color:var(--ink);text-align:left;padding:0;overflow:hidden;display:flex;flex-direction:column;min-height:385px;transition:border-color .2s}
@@ -138,7 +143,7 @@
 
 .wiki-card-type i{width:3px;height:3px;border-radius:50%;background:currentColor}
 
-.wiki-card h3{font-family:var(--font-display);font-size:2.1rem;letter-spacing:.01em;margin:13px 0 var(--space-2);line-height:1}
+.wiki-card h3{font-family:var(--font-display);font-size:2.1rem;letter-spacing:.01em;margin:13px 0 var(--space-2);line-height:1;overflow-wrap:break-word}
 
 .wiki-card p{color:var(--ink-muted);line-height:1.5;font-size:.9rem;margin:0 0 20px}
 
@@ -176,7 +181,7 @@
 
 .record-body{padding:36px 39px 60px}
 
-.record-body h2{font-family:var(--font-display);font-size:clamp(3.5rem,7vw,5.7rem);line-height:.92;margin:19px 0 22px}
+.record-body h2{font-family:var(--font-display);font-size:clamp(3.5rem,7vw,5.7rem);line-height:.92;margin:19px 0 22px;overflow-wrap:break-word}
 
 /* The lead paragraph of a record: --text-lead for the size, --leading-prose for
    the setting. The one rule on the route that takes both ramps at once, which is
@@ -190,7 +195,10 @@
 
 .record-facts span{padding:var(--space-2) 10px;border:1px solid var(--hairline);color:var(--ink-muted);font-size:.72rem}
 
-.record-data{border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);display:grid;grid-template-columns:1fr 1fr;margin-top:var(--space-6);padding:22px 0;gap:15px}
+/* The two fact columns are minmax(0,1fr) for the same reason as the card grid:
+   `DERİNLİK` and `DEĞERLENDİRME` are long uppercase micro labels and a bare fr
+   would let them set the track. */
+.record-data{border-top:1px solid var(--hairline);border-bottom:1px solid var(--hairline);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);margin-top:var(--space-6);padding:22px 0;gap:15px}
 
 .record-data div{display:flex;flex-direction:column;gap:10px}
 
@@ -214,4 +222,13 @@
 
 @media(max-width:850px){.wiki-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.wiki-hero-count{display:none}}
 
-@media(max-width:600px){.wiki-hero{height:530px}.wiki-hero-inner{width:calc(100% - 38px);padding-top:144px}.wiki-hero h1{font-size:clamp(4rem,14vw,6rem)}.wiki-hero p{font-size:.95rem}.database{width:calc(100% - 38px);padding:60px 0 85px}.database-heading h2{font-size:3.45rem}.database-count,.database-subbar>span{display:none}.database-tools{display:block;margin-top:25px}.filters{margin-top:10px;justify-content:space-between}.filters button{min-width:0;padding:10px 11px}.wiki-grid{grid-template-columns:1fr}.wiki-card{min-height:350px}.wiki-card-art{height:160px}.record-body{padding:29px 22px 50px}.record-top{padding:0 22px}.record-image{height:220px}}
+@media(max-width:600px){.wiki-hero{height:530px}.wiki-hero-inner{width:calc(100% - 38px);padding-top:144px}.wiki-hero h1{font-size:clamp(4rem,14vw,6rem)}.wiki-hero p{font-size:.95rem}.database{width:calc(100% - 38px);padding:60px 0 85px}.database-heading h2{font-size:3.45rem}.database-count,.database-subbar>span{display:none}.database-tools{display:block;margin-top:25px}.filters{margin-top:10px;justify-content:space-between}.filters button{min-width:0;padding:10px 11px}.wiki-grid{grid-template-columns:minmax(0,1fr)}.wiki-card{min-height:350px}.wiki-card-art{height:160px}.record-body{padding:29px 22px 50px}.record-top{padding:0 22px}.record-image{height:220px}}
+
+/* The small-tablet rung (601-768) from the ladder in tokens.css. 768 measured
+   clean on this route — the two-column grid, the search row and the filter bar
+   all sit inside the viewport — so this is the vertical rhythm of the band. The
+   76px above the grid and the 120px below it are the wide-screen values, and
+   against a 700px measure with two columns of cards they read as slack rather
+   than as air. No text is resized here, so the wrapped clicks on this route at
+   768 are unchanged. */
+@media(min-width:601px) and (max-width:768px){.database{padding:64px 0 96px}}

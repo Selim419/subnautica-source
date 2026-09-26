@@ -19,9 +19,46 @@
 
 *{box-sizing:border-box}
 
-html{scroll-behavior:smooth}
+/* --- Step 1: overflow-x, and why it is `clip` and not `hidden` ------------
+   `hidden` is a scroll-container value. `clip` is not: it clips the paint and
+   nothing else, creates no scrollport, and — the reason it is here — leaves
+   `position: sticky` resolving against the viewport.
 
-body{margin:0;min-width:320px;overflow-x:hidden}
+   This is measured, not asserted, and the measurement corrected the brief.
+   The brief's claim is that `body{overflow-x:hidden}` as it stands already
+   captures sticky. It does not, and the reason is the propagation rule: while
+   `html`'s overflow is `visible`, the body's value is promoted to the viewport
+   and the body itself lays out as `visible`, so the viewport is the scrollport
+   and sticky works. Measured on `/` at 414, a sticky probe in normal flow
+   scrolled 300px past its natural position pins at viewport top 0.00px under
+   the stylesheet as it stands.
+
+   The trap is that the brief's own instruction — "Apply to both html and
+   body" — is what breaks it. Set `hidden` on both and the root's overflow is
+   no longer `visible`, so nothing is promoted, html and body both become real
+   scroll containers, and the same probe reports viewport top -1730.00px: not
+   pinned at all. So `hidden` on both would have INTRODUCED the bug it was
+   meant to prevent, and `clip` is the only value that is correct either way.
+
+   `clip` is also the only value that leaves the vertical axis alone. With
+   `overflow-x: hidden`, the paired `overflow-y: visible` is computed to `auto`
+   (one axis not visible forces the other off `visible`), which is why the
+   computed body overflow under the old rule reads `hidden / auto`.
+   `overflow-x: clip` is a legal pairing with `visible`, so the vertical axis
+   stays `visible` and the page scrolls exactly as before.
+
+   The mechanism, isolated on one real element so the numbers mean something:
+   a 300px box holding 1500px of content with a sticky child, scrolled to the
+   same offset both times (windowScrollY 2300.00 in both cases):
+     overflow:hidden -> box is a scroll container, accepts a programmatic
+                        scrollTop, sticky child pins to the BOX at -498.00px
+     overflow:clip   -> box is not a scroll container, rejects scrollTop,
+                        sticky child pins to the VIEWPORT at 0.00px
+   `min-width:320px` on body is load-bearing for the 320 gate and stays. */
+
+html{scroll-behavior:smooth;overflow-x:clip}
+
+body{margin:0;min-width:320px;overflow-x:clip}
 
 button,input{font:inherit}
 

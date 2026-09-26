@@ -85,9 +85,12 @@
    and --space-9 (96px) are gone and stay gone: 96px appears nowhere in the
    components at all, and the two 48px sites are a horizontal gutter inside a
    calc() and a control's min-height, neither of which is a step in the vertical
-   rhythm — the gutter scale around them is 19/34/38/68px and the control heights
+   rhythm — the gutter scale around them is 19/38/48/68px and the control heights
    are 48/51px, and folding one rung of each into the spacing scale would
-   imply a rhythm those two scales do not share. See task-6c-report.md.
+   imply a rhythm those two scales do not share. Re-counted for task 7 against
+   the current files: 48px twice (hero.css, both sites above), 96px zero times,
+   and the 95px at dive.css is .manifesto's compact bottom padding, one pixel
+   off a step that no longer exists. See task-6c-report.md and task-7-report.md.
 
    The type scale is not here. It moved to type.css, next to the three font
    tokens it composes with, so that all of the type layer is in one file. The
@@ -98,4 +101,34 @@
   --space-5: 24px; --space-6: 32px;
   --space-8: 64px;
   --space-10: 128px;
+}
+
+/* --- Layer 3b: the breakpoint ladder --------------------------------------
+   A custom property cannot be used inside an @media condition, so these four
+   values are documentary: they are the single place the ladder is written
+   down, and every @media in chrome.css, hero.css, dive.css and wiki.css has to
+   match one of them literally. They exist so the next person adding a rule
+   picks a rung off this list instead of inventing 780px.
+
+   The ladder is descending (max-width), so a later block wins at equal
+   specificity. That is why the small-tablet rung is a BAND and not a plain
+   max-width: `max-width:768px` would also match 320, 375 and 414 and quietly
+   become part of the compact tier. Written as a range it governs 768 and
+   nothing narrower, which is what "768 has a rule of its own" has to mean if
+   the three phone widths are to keep sharing one deliberate tier.
+
+     rung        band        the mandatory width it governs
+     compact     <= 600      320, 375, 414
+     smallTablet 601 - 768   768
+     tablet      769 - 850   (none)
+     narrow      851 - 1160  (none)
+     wide        > 1160      1440
+
+   All four mandatory widths are covered and 768 is the only one that needed a
+   rung of its own; the measurements behind that are in task-7-report.md. */
+:root {
+  --bp-compact: 600px;
+  --bp-tablet: 768px;
+  --bp-landscape: 850px;
+  --bp-narrow: 1160px;
 }

@@ -8,12 +8,26 @@
 
 .section-heading{display:flex;align-items:end;justify-content:space-between;gap:40px;margin-bottom:49px}
 
-.section-heading h2,.database-heading h2{font-family:var(--font-display);font-size:clamp(3.5rem,7.2vw,7.5rem);line-height:.9;letter-spacing:-.02em;margin:21px 0 0;font-weight:900}
+/* `min-width:0` because this h2 is a flex item of .section-heading: a flex item
+   floors at its min-content width by default, so an unbreakable Turkish word in
+   a 700px measure would push the flex line wider than the viewport instead of
+   wrapping inside it. `overflow-wrap:break-word` breaks only a word that
+   genuinely cannot fit — `anywhere` would additionally lower the min-content
+   size and change how the item negotiates the flex line, which is the wrong
+   tool for a heading whose words are meant to stay whole. */
+.section-heading h2,.database-heading h2{font-family:var(--font-display);font-size:clamp(3.5rem,7.2vw,7.5rem);line-height:var(--leading-heading);letter-spacing:var(--tracking-heading);margin:21px 0 0;font-weight:900;min-width:0;overflow-wrap:break-word}
 
 .section-heading h2 em{font-style:normal;color:var(--glow)}
 
 .section-heading p{max-width:345px;margin:0;color:var(--ink-muted);line-height:var(--leading-body)}
 
+/* A bare `1fr` track floors at its content's min-content width, so a long word
+   or a wide image in the card cell widens the track past the viewport instead of
+   being constrained by it. The first track keeps an explicit 280px floor
+   because the tab list is sized against it; its max is already an fr, so it
+   never falls back to min-content. Below 850 the layout is one column and that
+   column is `minmax(0,1fr)`, which is where the card has to stop setting the
+   page's width. */
 .dive-layout{display:grid;grid-template-columns:minmax(280px,.63fr) minmax(0,1.37fr);gap:18px}
 
 .dive-list{display:flex;flex-direction:column;gap:var(--space-3)}
@@ -39,7 +53,10 @@
    steps up to --hairline-firm, 2.15:1. The card keeps --hairline, because the
    photograph inside it is what draws that edge. */
 
-.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px 1fr auto 20px;align-items:center;gap:18px;background:var(--deep);border:1px solid var(--hairline-firm);padding:var(--space-5);text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
+/* The label track is minmax(0,1fr) for the same reason as the layout track: the
+   zone name is the widest thing in the tab and a bare 1fr would let it set the
+   track. It costs nothing here because the name wraps at its space. */
+.dive-tab{flex:1;min-height:142px;display:grid;grid-template-columns:34px minmax(0,1fr) auto 20px;align-items:center;gap:18px;background:var(--deep);border:1px solid var(--hairline-firm);padding:var(--space-5);text-align:left;color:var(--ink);transition:background .25s,border-color .25s,transform .25s}
 
 .dive-tab:hover{transform:translateX(4px)}
 
@@ -86,7 +103,7 @@
 
 .dive-card-body .section-kicker{color:var(--zone-accent)}
 
-.dive-card-body h3{font-family:var(--font-display);font-size:clamp(2.7rem,4.6vw,5rem);line-height:.94;font-weight:900;max-width:580px;margin:14px 0}
+.dive-card-body h3{font-family:var(--font-display);font-size:clamp(2.7rem,4.6vw,5rem);line-height:.94;font-weight:900;max-width:580px;margin:14px 0;overflow-wrap:break-word}
 
 /* The one place on the site where a size, a leading and a family genuinely
    belong to a single sentence, so this is the one place the `font` shorthand is
@@ -122,9 +139,16 @@
    panel rather than reporting anything, which is the supporting kind. */
 .manifesto-top>span:last-child{font-family:var(--font-mono);font-weight:400}
 
-.manifesto-grid{display:grid;grid-template-columns:1.45fr .55fr;gap:80px;align-items:end;margin-top:57px}
+/* The manifesto grid. Both tracks minmax(0,…): the left one carries a 10rem
+   heading and the right one a paragraph, and a bare fr in either lets its
+   content set the track. */
+.manifesto-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.55fr);gap:80px;align-items:end;margin-top:57px}
 
-.manifesto h2{font-family:var(--font-display);font-size:clamp(4.5rem,9vw,10rem);line-height:.84;letter-spacing:var(--tracking-tight);margin:0;font-weight:900}
+/* `min-width:0` because this h2 is a grid item of .manifesto-grid: a grid item
+   floors at min-content by default, so BİR GEZEGEN or SONSUZ BİLİNMEYEN at
+   10rem would widen the 1.45fr track rather than wrap in it. Same reason and
+   same `break-word`-not-`anywhere` choice as .section-heading h2. */
+.manifesto h2{font-family:var(--font-display);font-size:clamp(4.5rem,9vw,10rem);line-height:var(--leading-display);letter-spacing:var(--tracking-tight);margin:0;font-weight:900;min-width:0;overflow-wrap:break-word}
 
 .manifesto h2 em{font-style:normal;color:var(--accent-invert)}
 
@@ -148,15 +172,45 @@
 
 .final-content{width:min(1380px,calc(100% - 68px));height:100%;margin:auto;display:flex;flex-direction:column;justify-content:center;align-items:start}
 
-.final-content h2{font-family:var(--font-display);font-size:clamp(5rem,10vw,10rem);line-height:.85;letter-spacing:var(--tracking-tight);margin:22px 0}
+/* The closing headline, and the one display setting on the site that genuinely
+   overflows. `BİLİNMEYENE` is a single unbreakable word: at the compact tier's
+   4.5rem floor it measures 414.22px, against a .final-content measure of
+   282px at 320, 337px at 375 and 376px at 414 — so it overhung the viewport by
+   113.22px, 58.22px and 19.22px respectively and was silently swallowed by
+   .final-cta's overflow:hidden. The measure gate cannot see this: the document
+   never overflowed, so `overflow` was false and `offenders` was empty at all
+   three widths. It was the fold screenshots that did not show it either,
+   because the clipped heading is four screens down the page.
+
+   Two things fix it and both are here. The size floor drops 4.5rem -> 2.9rem,
+   which is the same trade dive.css already documents for KATMANLARI: at 2.9rem
+   the word measures 266.95px against a 282px measure at 320, so the line stays
+   whole with 15.05px to spare, where `break-word` would leave an orphaned "E"
+   on a line of its own. And `overflow-wrap:break-word` stays as the floor under
+   it, so the word still cannot leave its box if the face or the measure
+   changes. `break-word` and not `anywhere`, for the reason given on
+   .section-heading h2. Measured after: 266.95px at 320, 302.05 at 375, 333.45
+   at 414, 460.25 at 768, two lines at every width, and the h2's right edge
+   inside the viewport at all four. */
+.final-content h2{font-family:var(--font-display);font-size:clamp(5rem,10vw,10rem);line-height:.85;letter-spacing:var(--tracking-tight);margin:22px 0;overflow-wrap:break-word}
 
 .final-content h2 em{font-style:normal;color:var(--glow)}
 
 .final-content p{font-size:var(--text-body);line-height:1.6;color:var(--ink);max-width:380px;margin:0 0 28px}
 
-@media(max-width:1160px){.manifesto-grid{grid-template-columns:1fr .75fr;gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px 1fr 20px}}
+@media(max-width:1160px){.manifesto-grid{grid-template-columns:minmax(0,1fr) minmax(0,.75fr);gap:40px}.tab-depth{display:none}.dive-tab{grid-template-columns:30px minmax(0,1fr) 20px}}
 
-@media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:1fr}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px 1fr}.dive-tab-arrow{display:none}.dive-tab b{font-size:var(--text-body)}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
+@media(max-width:850px){.section-heading{display:block}.section-heading p{margin-top:25px}.dive-layout{grid-template-columns:minmax(0,1fr)}.dive-list{flex-direction:row}.dive-tab{min-height:115px;padding:15px;grid-template-columns:24px minmax(0,1fr)}.dive-tab-arrow{display:none}.dive-tab b{font-size:var(--text-body)}.dive-card{min-height:520px}.manifesto-grid{display:block}.manifesto-grid>div{max-width:600px;margin-top:38px}}
+
+/* The small-tablet rung (601-768) from the ladder in tokens.css. Nothing here
+   overflows — 768 measured clean on both routes, with the tab row, the card,
+   the two-column wiki grid and the footer all inside the viewport — so this
+   block is the vertical rhythm of the band and nothing more. The wide-screen
+   values are too generous at 768: a 145px run-out below the dive card and 107px
+   of air above the manifesto heading, both against a 700px measure, and neither
+   earns its space. Nothing here can move a line of text, so the wrapped-click
+   count at 768 is untouched. */
+@media(min-width:601px) and (max-width:768px){.dive{padding-bottom:110px}.manifesto{padding:88px 34px 100px}}
 
 /* A decision, not a side effect of the typeface swap. 3.4rem -> 3.1rem, and
    only in this block. `KATMANLARI` inside #dive-title is one unbreakable
@@ -170,4 +224,4 @@
    word whole and the page inside its viewport, so that is what was taken. The
    600px block is already where this heading is resized to fit a narrow
    viewport; nothing above 600px moves. */
-@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px 1fr 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:var(--text-body)}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(4.5rem,14vw,6.5rem)}}
+@media(max-width:600px){.dive{padding:78px 19px 90px}.section-heading h2{font-size:3.1rem}.dive-list{flex-direction:column}.dive-tab{min-height:75px;grid-template-columns:30px minmax(0,1fr) 20px}.dive-tab-arrow{display:block}.dive-card{min-height:500px}.dive-card-head,.dive-card-foot{left:19px;right:19px;font-size:.58rem}.dive-card-body{left:22px;right:22px}.dive-card-body h3{font-size:3.2rem}.manifesto{padding:80px 19px 95px}.manifesto-top span:last-child{display:none}.manifesto h2{font-size:clamp(4rem,13vw,6rem)}.manifesto-grid{margin-top:35px}.manifesto-grid p{font-size:var(--text-body)}.final-cta{height:540px}.final-content{width:calc(100% - 38px)}.final-content h2{font-size:clamp(2.9rem,14vw,6.5rem)}}
