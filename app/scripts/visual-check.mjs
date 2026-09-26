@@ -9,6 +9,7 @@
 //   node scripts/visual-check.mjs shots     <url> <outDir> [width:height ...]
 //   node scripts/visual-check.mjs signature <url> [width:height ...]
 //   node scripts/visual-check.mjs signature --geometry <url> [width:height ...]
+//   node scripts/visual-check.mjs contrast  <url> [width:height ...]
 //
 // `measure` is page-probe.js. Its output gained `clippedText` in this task and
 // the gain is deliberately additive: `overflow` is computed from the document's
@@ -30,6 +31,26 @@
 // It is a regression detector, not an equality gate: a task that swaps the typeface
 // is *supposed* to move every heading's box.
 //
+// `contrast` is spec §6.4/7 made mechanical: text measured over the *live* scene
+// rather than a swatch. Per regime it copies the WebGL canvas into a 2D one,
+// takes the lightest pixel under every `[data-contrast]` box (the worst case for
+// pale ink over a moving sea), and reads each element's computed colour,
+// font-size and font-weight to decide the tier that element is actually held to:
+//
+//   4.5:1  body copy                      (spec §6.4/7, §8.2)
+//   3:1    large text - >= 24px, or >= 18.66px at weight >= 700 (WCAG AA)
+//   7:1    either endpoint of the pair is the `--amber` token
+//
+// The reported `threshold` says which number applied and why. The exit code is
+// non-zero if any sampled pair falls short, if a computed colour cannot be
+// parsed, or if a regime had nothing to measure: "0 elements checked" must
+// never be readable as "0 failures".
+//
+// Until the dive spine installs `window.__diveProbe` there is nothing to sample,
+// so a width reports `no-canvas` and the run still exits 0 - the scene does not
+// exist yet, and pretending to have measured it would be worse. The URL gets a
+// `preserve=1` flag for the scene to honour so its drawing buffer stays readable.
+//
 // Dev tool only. Never wire this into CI: the runner is Linux without a browser
 // and the script exits 3 with a clear message when it cannot find one.
 
@@ -48,6 +69,14 @@ const PORT = 9335
 const PROBE = resolve(import.meta.dirname, 'page-probe.js')
 const PROFILE = resolve(process.env.TEMP, 'opencode', 'cdp-profile3')
 const SEND_TIMEOUT = 60000
+
+// `--amber` from app/src/design/tokens.css (#ffb454) as a comparable triple.
+// spec §6.4/7 folds the §8.2 `--amber >= 7:1` check into the text-contrast rule,
+// and any value styled with `var(--amber)` computes to rgb(255, 180, 84), so the
+// endpoints of a sampled pair are compared against this literal. Pinned here on
+// purpose: retinting the token must surface as a deliberate edit to the gate
+// rather than as a silent drift in what "amber" means.
+const AMBER_RGB = [255, 180, 84]
 
 // Runs inside the page. Returns one record per element: a stable identity plus
 // the resolved layout that a stylesheet edit could plausibly change.
@@ -238,6 +267,206 @@ const probeFor = (props, withLines) => `(async () => {
   return { entries, unstableRects }
 })()`
 
+// Installed into the page by `contrast` before anything is asked of it: defines
+// `window.__diveContrast(regimeIndex)`. `window.__diveProbe` is deliberately NOT
+// defined here - the dive spine owns it, and until it exists the command reports
+// `no-canvas` instead of inventing regimes to sample.
+//
+// What is measured, and what is refused rather than guessed:
+//
+//   * Background is the lightest pixel of the ocean canvas under the element's
+//     box, mapped viewport -> canvas the way the scene itself is drawn. Light is
+//     the conservative direction: any paler pixel inside the box would only pull
+//     the ratio down, so the sample cannot flatter the pair.
+//   * Text is the computed `color`, composited over that pixel when the ink is
+//     translucent (--ink-muted is rgba). Contrasting raw rgba against the scene
+//     would credit contrast the reader never sees.
+//   * The tier comes from each element's computed font-size and font-weight:
+//     4.5:1 for body copy, 3:1 for large text (>=24px, or >=18.66px at >=700),
+//     7:1 whenever either endpoint of the pair is the amber token - amber wins
+//     over both because it carries the smallest text (spec §6.4/7 + §8.2).
+//   * A colour that cannot be parsed - an unresolved color-mix(), display-p3, a
+//     keyword the engine did not serialise - is reported as `unparseable`. A
+//     gate that cannot read a colour must not claim the pair passed.
+//
+// The record returned is the pair with the smallest margin over its own
+// threshold, so a pass reports the tightest pair and a failure reports the worst
+// one: an amber pair at 5:1 cannot hide behind a body pair at 4.6:1.
+const CONTRAST_PROBE = `
+  (() => {
+    const AMBER = ${JSON.stringify(AMBER_RGB)}
+    const LARGE_PX = 24
+    const LARGE_BOLD_PX = 18.66
+    const MIN_BODY = 4.5
+    const MIN_LARGE = 3
+    const MIN_AMBER = 7
+
+    const lin = (c) => { c /= 255; return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 }
+    const lum = (rgb) => 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2])
+    const same = (a, b) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
+
+    const alpha = (v) => {
+      const n = v.endsWith('%') ? parseFloat(v) / 100 : parseFloat(v)
+      return Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : null
+    }
+    const chan = (v, scale) => {
+      const n = v.endsWith('%') ? (parseFloat(v) / 100) * 255 : parseFloat(v) * scale
+      return Number.isFinite(n) ? Math.round(n) : null
+    }
+
+    // Computed colours arrive as rgb()/rgba(), #hex, or color(srgb ...). Anything
+    // else returns null and is reported as unparseable rather than approximated.
+    const parseColour = (value) => {
+      if (typeof value !== 'string') return null
+      const s = value.trim().toLowerCase()
+      let m = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.exec(s)
+      if (m) {
+        const hex = m[1].length <= 4 ? [...m[1]].map((c) => c + c).join('') : m[1]
+        return {
+          rgb: [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)),
+          alpha: hex.length === 8 ? parseInt(hex.slice(6, 8), 16) / 255 : 1,
+        }
+      }
+      m = /^rgba?\\(([^)]*)\\)$/.exec(s)
+      if (m) {
+        const parts = m[1].split(/[\\s,\\/]+/).filter(Boolean)
+        if (parts.length < 3) return null
+        const rgb = parts.slice(0, 3).map((v) => chan(v, 1))
+        if (rgb.some((c) => c === null)) return null
+        const a = parts[3] === undefined ? 1 : alpha(parts[3])
+        if (a === null) return null
+        return { rgb, alpha: a }
+      }
+      m = /^color\\(\\s*srgb\\s+([^)]*)\\)$/.exec(s)
+      if (m) {
+        const parts = m[1].split(/[\\s\\/]+/).filter(Boolean)
+        if (parts.length < 3) return null
+        const rgb = parts.slice(0, 3).map((v) => chan(v, 255))
+        if (rgb.some((c) => c === null)) return null
+        const a = parts[3] === undefined ? 1 : alpha(parts[3])
+        if (a === null) return null
+        return { rgb, alpha: a }
+      }
+      return null
+    }
+
+    window.__diveContrast = (regimeIndex) => {
+      const head = { regimeIndex }
+      const bail = (status, detail) => ({ ...head, status, ratio: null, threshold: null, checked: 0, detail })
+
+      const gl = document.querySelector('canvas[data-ocean]')
+      if (!gl) return bail('no-canvas', 'no canvas[data-ocean] in the document')
+
+      const copy = document.createElement('canvas')
+      copy.width = gl.width
+      copy.height = gl.height
+      const ctx = copy.getContext('2d')
+      try {
+        ctx.drawImage(gl, 0, 0)
+      } catch (err) {
+        return bail('unreadable', 'the ocean canvas could not be copied: ' + (err && err.message ? err.message : String(err)))
+      }
+
+      const els = document.querySelectorAll('[data-contrast]')
+      if (!els.length) {
+        return bail('no-text', '0 [data-contrast] elements in the document - nothing was measured, so this is not a pass')
+      }
+
+      let visible = 0
+      let checked = 0
+      let badColour = null
+      let worst = null
+
+      try {
+        for (const el of els) {
+          const r = el.getBoundingClientRect()
+          if (r.bottom < 0 || r.top > innerHeight) continue
+          visible++
+
+          const cs = getComputedStyle(el)
+          const rawColour = cs.color
+          const text = parseColour(rawColour)
+          if (!text) {
+            if (!badColour) badColour = { raw: rawColour, key: el.id || el.className || el.localName }
+            continue
+          }
+
+          const px = Math.max(1, Math.floor(r.width))
+          const py = Math.max(1, Math.floor(r.height))
+          const sx = Math.max(0, Math.floor(r.left * gl.width / innerWidth))
+          const sy = Math.max(0, Math.floor(r.top * gl.height / innerHeight))
+          const sw = Math.min(gl.width - sx, Math.floor(px * gl.width / innerWidth))
+          const sh = Math.min(gl.height - sy, Math.floor(py * gl.height / innerHeight))
+          if (sw <= 0 || sh <= 0) continue
+
+          const data = ctx.getImageData(sx, sy, sw, sh).data
+          let lightest = 0
+          let lightestRgb = [0, 0, 0]
+          for (let i = 0; i < data.length; i += 4) {
+            const rgb = [data[i], data[i + 1], data[i + 2]]
+            const l = lum(rgb)
+            if (l > lightest) { lightest = l; lightestRgb = rgb }
+          }
+
+          const fg = text.alpha < 1
+            ? text.rgb.map((c, i) => c * text.alpha + lightestRgb[i] * (1 - text.alpha))
+            : text.rgb
+          const fgLum = lum(fg)
+          const ratio = (Math.max(fgLum, lightest) + 0.05) / (Math.min(fgLum, lightest) + 0.05)
+
+          const fontSize = parseFloat(cs.fontSize)
+          const weight = parseInt(cs.fontWeight, 10)
+          const bold = Number.isFinite(weight) ? weight >= 700 : false
+          const large = Number.isFinite(fontSize) && (fontSize >= LARGE_PX || (fontSize >= LARGE_BOLD_PX && bold))
+          const amber = same(text.rgb, AMBER) || same(lightestRgb, AMBER)
+          const threshold = amber ? MIN_AMBER : (large ? MIN_LARGE : MIN_BODY)
+
+          checked++
+          const margin = ratio - threshold
+          if (!worst || margin < worst.margin) {
+            worst = {
+              margin,
+              textColour: rawColour,
+              backgroundColour: 'rgb(' + lightestRgb.join(', ') + ')',
+              backgroundLuminance: Number(lightest.toFixed(4)),
+              ratio: Number(ratio.toFixed(4)),
+              threshold,
+              fontSize: Number.isFinite(fontSize) ? fontSize : null,
+              fontWeight: Number.isFinite(weight) ? weight : null,
+              large,
+              amber,
+            }
+          }
+        }
+      } catch (err) {
+        return bail('unreadable', 'the scene pixels could not be read: ' + (err && err.message ? err.message : String(err)))
+      }
+
+      // Order matters: a measured pair below its own tier is the most actionable
+      // finding, an unmeasurable colour is next, a measured pass is last, and
+      // "nothing was here" is never allowed to read as success.
+      if (worst && worst.margin < 0) {
+        const { margin, ...record } = worst
+        return { ...head, status: 'ok', checked, ...record }
+      }
+      if (badColour) {
+        return {
+          ...head, status: 'unparseable', ratio: null, threshold: null, checked,
+          textColour: badColour.raw,
+          detail: 'cannot parse the computed colour ' + JSON.stringify(badColour.raw) + ' of ' + badColour.key + ' - that pair was not measured, so it cannot pass',
+        }
+      }
+      if (worst) {
+        const { margin, ...record } = worst
+        return { ...head, status: 'ok', checked, ...record }
+      }
+      return bail('no-text', visible === 0
+        ? 'none of the ' + els.length + ' [data-contrast] elements intersect the viewport - nothing was measured, so this is not a pass'
+        : visible + ' of ' + els.length + ' [data-contrast] elements are in the viewport but none had a sampleable box - nothing was measured, so this is not a pass')
+    }
+  })()
+`
+
 const argv = process.argv.slice(2)
 const cmd = argv.shift()
 // `signature --geometry <url> ...` - the flag is parsed here, not as a URL, so a
@@ -247,7 +476,7 @@ const geometry = cmd === 'signature' && argv[0] === '--geometry'
 if (geometry) argv.shift()
 const url = argv.shift()
 if (!cmd || !url) {
-  console.error('usage: node scripts/visual-check.mjs <measure|shots|signature> [--geometry] <url> [outDir] [width:height ...]')
+  console.error('usage: node scripts/visual-check.mjs <measure|shots|signature|contrast> [--geometry] <url> [outDir] [width:height ...]')
   process.exit(2)
 }
 const rest = argv
@@ -259,6 +488,77 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 // Exit code carried by a deliberate failure, so the message and the code agree.
 class Fail extends Error {
   constructor(message, code) { super(message); this.code = code }
+}
+
+// The `preserve=1` flag has to land in the query, not after the fragment: a run
+// against `/#/wiki` would otherwise hand the scene a flag that URLSearchParams
+// can never see.
+const withPreserve = (u) => {
+  const at = u.indexOf('#')
+  const head = at === -1 ? u : u.slice(0, at)
+  const tail = at === -1 ? '' : u.slice(at)
+  return head + (head.includes('?') ? '&' : '?') + 'preserve=1' + tail
+}
+
+// One width of the `contrast` gate, riding the same CDP connection `measure`
+// uses - PORT is pinned, so a second client would fight this one for the single
+// browser instance. Launch, error handling and teardown stay where they are.
+const contrastAt = async (send, w, h) => {
+  await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 })
+  const nav = await send('Page.navigate', { url: withPreserve(url) })
+  if (nav.errorText) throw new Fail(`cannot load ${url}: ${nav.errorText}`, 1)
+  await sleep(3800) // fonts, images and the WebGL scene
+
+  const install = await send('Runtime.evaluate', { expression: CONTRAST_PROBE, returnByValue: true })
+  if (install.exceptionDetails) throw new Fail(JSON.stringify(install.exceptionDetails), 4)
+
+  const probe = await send('Runtime.evaluate', {
+    expression: 'window.__diveProbe ? window.__diveProbe() : null',
+    returnByValue: true, awaitPromise: true,
+  })
+  if (probe.exceptionDetails) throw new Fail(JSON.stringify(probe.exceptionDetails), 4)
+  const regimes = probe.result.value
+
+  // The one tolerated empty result: the spine that installs __diveProbe does not
+  // exist yet, so there is genuinely nothing to sample. It is still printed as
+  // its own status rather than dropped, so "no numbers" cannot be read as
+  // "all clear".
+  if (regimes == null) {
+    return [{ width: w, status: 'no-canvas', detail: 'window.__diveProbe is not installed - nothing was sampled at this width' }]
+  }
+  if (!Array.isArray(regimes) || regimes.length === 0) {
+    return [{
+      width: w, status: 'no-regimes', pass: false,
+      detail: 'window.__diveProbe() returned ' + String(regimes).slice(0, 120) + ' - no regimes to sample, so this is not a pass',
+    }]
+  }
+
+  const entries = []
+  for (const sample of regimes) {
+    // The spine hands back bare indices; an object carrying regimeIndex reads the
+    // same way. Anything else is reported, not silently skipped.
+    const regimeIndex = typeof sample === 'number'
+      ? sample
+      : sample != null && typeof sample === 'object' ? Number(sample.regimeIndex) : NaN
+    if (!Number.isFinite(regimeIndex)) {
+      entries.push({
+        width: w, regimeIndex: null, status: 'bad-regime', pass: false,
+        detail: '__diveProbe returned a sample with no numeric regimeIndex: ' + String(sample).slice(0, 120),
+      })
+      continue
+    }
+    const r = await send('Runtime.evaluate', {
+      expression: `window.__diveContrast(${JSON.stringify(regimeIndex)})`,
+      returnByValue: true, awaitPromise: true,
+    })
+    if (r.exceptionDetails) throw new Fail(JSON.stringify(r.exceptionDetails), 4)
+    const finding = r.result.value
+    // `status` says what was measured, `pass` is the verdict; only a measured
+    // pair with a finite ratio can ever pass.
+    const pass = finding.status === 'ok' && Number.isFinite(finding.ratio) && finding.ratio >= finding.threshold
+    entries.push({ width: w, ...finding, pass })
+  }
+  return entries
 }
 
 const bin = CHROME_CANDIDATES.find((p) => { try { return readFileSync(p).length > 0 } catch { return false } })
@@ -374,6 +674,10 @@ try {
   const results = []
   for (const spec of widths) {
     const [w, h] = spec.split(':').map(Number)
+    if (cmd === 'contrast') {
+      results.push(...(await contrastAt(send, w, h)))
+      continue
+    }
     const metrics = { width: w, height: h }
     await send('Emulation.setDeviceMetricsOverride', { width: w, height: h, deviceScaleFactor: 1, mobile: w < 768 })
     const nav = await send('Page.navigate', { url })
@@ -426,6 +730,10 @@ try {
   }
 
   console.log(JSON.stringify(results, null, 2))
+  // `contrast` is a gate: any sampled pair below its own tier, any colour that
+  // could not be read, and any width or regime with nothing to measure all fail.
+  // `no-canvas` is the sole tolerated state - the scene does not exist yet.
+  if (cmd === 'contrast' && results.some((r) => r.pass === false)) process.exitCode = 1
 } catch (err) {
   console.error('visual-check failed: ' + (err && err.message ? err.message : String(err)))
   process.exitCode = err instanceof Fail ? err.code : 1
