@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BIOMES } from './biomes.js'
-import { REGIMES, regimeAt } from './regimes.js'
+import { regimeAt } from './regimes.js'
 
 function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v }
 
